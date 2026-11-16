@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "waqti-relay",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-16",
+  "account_id": "61a44b6608b71c105f8471795e220146",
+  "vars": {
+    "BOT_TOKEN": "9002447766:AAEUHZg-JMxwUn3S_OCW1DwbrccUbXkjblo",
+    "BOT_USERNAME": "Waqti_bot"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "PARENTAL_DB",
+      "id": "16f11539cb8e433fa6a17de4ea59df6b"
+    }
+  ]
+}
