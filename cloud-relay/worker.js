@@ -55,12 +55,21 @@ export default {
       let device = await getKV(env, `dev:${deviceId}`);
       if (!device) return jsonResponse({ success: false, error: "Device not found" }, 404);
 
-      device.lastSeen = new Date().toISOString();
-      if (data.status) device.status = data.status;
-
       const commands = device.pendingCommands || [];
-      device.pendingCommands = [];
-      await putKV(env, `dev:${deviceId}`, device);
+      const hasCommandsToClear = commands.length > 0;
+
+      const now = Date.now();
+      const lastKvWrite = device._lastKvWrite || 0;
+      const statusChanged = data.status && JSON.stringify(data.status) !== JSON.stringify(device.status);
+      const timeForPeriodicWrite = (now - lastKvWrite) > 180000; // Periodic write every 3 minutes
+
+      if (hasCommandsToClear || statusChanged || timeForPeriodicWrite) {
+        device.lastSeen = new Date(now).toISOString();
+        if (data.status) device.status = data.status;
+        device.pendingCommands = [];
+        device._lastKvWrite = now;
+        await putKV(env, `dev:${deviceId}`, device);
+      }
 
       return jsonResponse({
         success: true,
@@ -197,7 +206,7 @@ function formatMinutes(min) {
 function isOnline(dev) {
   if (!dev || !dev.lastSeen) return false;
   const diffSec = (Date.now() - new Date(dev.lastSeen).getTime()) / 1000;
-  return diffSec <= 85;
+  return diffSec <= 220;
 }
 
 function buildMainKeyboard(user, dev) {
@@ -356,7 +365,7 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
 
     // Unpaired user
     if (!user.activeDeviceId) {
-      await sendTelegram(botToken, chatId, `👋 <b>مرحباً بك في بوت وقتي (Waqti) للرقابة الأبوية!</b>\n\nلم يتم ربط أي جهاز بحسابك بعد.\n\n🔗 <b>لربط جهاز الكمبيوتر:</b>\n1. افتح تطبيق <b>وقتي (Waqti)</b> على كمبيوتر طفلك.\n2. اذهب إلى قسم <b>الإعدادات</b>.\n3. أرسل كود الاقتران المكون من 6 أرقام هنا.`);
+      await sendTelegram(botToken, chatId, `👋 <b>مرحباً بك في بوت وقتي (Waqti)!</b>\n\nلم يتم ربط أي جهاز بحسابك بعد.\n\n🔗 <b>لربط جهاز الكمبيوتر:</b>\n1. افتح تطبيق <b>وقتي (Waqti)</b> على الكمبيوتر.\n2. اذهب إلى قسم <b>الإعدادات</b>.\n3. أرسل كود الاقتران المكون من 6 أرقام هنا.`);
       return;
     }
 
@@ -502,6 +511,7 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
     if (data === "cmd:top") {
       await enqueueCommand(env, dev.deviceId, "get_top");
       await answerCallback(botToken, cb.id, "جاري إعداد تقرير النشاط...");
+      await sendTelegram(botToken, chatId, `📊 <b>جاري جلب تقرير البرامج والمواقع الأكثر استخداماً من جهاز (${dev.deviceName || 'PC'})...</b>`);
       return;
     }
 

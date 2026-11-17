@@ -41,11 +41,11 @@ Source: "..\publish\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdir
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; \
-    IconFilename: "{app}\{#MyAppExeName}"; Comment: "Launch Parental Control Admin"
-Name: "{group}\Child Time & Safety Dashboard"; Filename: "{app}\{#OverlayExeName}"; \
-    Parameters: "--dashboard"; IconFilename: "{app}\{#OverlayExeName}"; Comment: "Child Screen Time & Protection Dashboard"
+    IconFilename: "{app}\{#MyAppExeName}"; Comment: "Launch Waqti Admin"
+Name: "{group}\Waqti Dashboard"; Filename: "{app}\{#OverlayExeName}"; \
+    Parameters: "--dashboard"; IconFilename: "{app}\{#OverlayExeName}"; Comment: "Waqti Time & Dashboard"
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; \
-    IconFilename: "{app}\{#MyAppExeName}"; Comment: "Launch Parental Control Admin"
+    IconFilename: "{app}\{#MyAppExeName}"; Comment: "Launch Waqti Admin"
 
 [UninstallRun]
 ; Stop and delete the service before files are removed
@@ -82,19 +82,13 @@ begin
     Exec('taskkill', '/F /IM ParentalControl.Admin.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
     // Stop service safely without deleting it
-    if ServiceExists() then
-    begin
-        Exec('sc', ExpandConstant('stop {#ServiceName}'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-        for i := 1 to 5 do
-        begin
-            Sleep(1000);
-            if not ServiceExists() then Break;
-        end;
-    end;
+    Exec('net', 'stop {#ServiceName} /y', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec('sc', ExpandConstant('stop {#ServiceName}'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(1500);
 
     // Terminate any stuck service process to unlock files for replacement
     Exec('taskkill', '/F /IM ParentalControl.Service.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(1000);
+    Sleep(1500);
 end;
 
 procedure SetupService();
@@ -110,11 +104,11 @@ begin
              + ' binPath= ' + BinPath
              + ' start= auto'
              + ' obj= LocalSystem'
-             + ' DisplayName= "Parental Control Service"',
+             + ' DisplayName= "Waqti Service"',
              '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
         Exec('sc', ExpandConstant('description {#ServiceName}')
-             + ' "Monitors and enforces parental control time limits."',
+             + ' "Monitors and enforces Waqti screen time limits."',
              '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
         Exec('sc', ExpandConstant('failure {#ServiceName}')

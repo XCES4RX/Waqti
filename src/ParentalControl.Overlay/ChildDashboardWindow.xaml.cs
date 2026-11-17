@@ -196,9 +196,9 @@ public partial class ChildDashboardWindow : Window
         {
             TxtFeedback.Text = _currentLang switch
             {
-                "ar" => "تعذر الاتصال بخدمة الرقابة الأبوية. يرجى المحاولة لاحقاً.",
-                "fr" => "Impossible de contacter le service parental.",
-                _ => "Could not contact Parental Control service."
+                "ar" => "تعذر الاتصال بخدمة وقتي (Waqti). يرجى المحاولة لاحقاً.",
+                "fr" => "Impossible de contacter le service Waqti.",
+                _ => "Could not contact Waqti service."
             };
             TxtFeedback.Foreground = BrushCritical;
         }

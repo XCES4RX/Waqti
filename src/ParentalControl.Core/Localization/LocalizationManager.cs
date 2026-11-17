@@ -42,8 +42,8 @@ public static class LocalizationManager
     private static readonly Dictionary<string, string> Arabic = new()
     {
         // ═══ Application Shell & Headers ═══
-        ["app_title"] = "وقتي (Waqti) — نظام الرقابة الأبوية",
-        ["app_subtitle"] = "إدارة وقت الاستخدام وحماية الأطفال",
+        ["app_title"] = "وقتي | Waqti",
+        ["app_subtitle"] = "إدارة وتنظيم وقت استخدام الأجهزة",
         ["btn_settings"] = "الإعدادات وتلغرام",
         ["btn_back"] = "العودة للوحة التحكم",
         ["service_active"] = "الخدمة: نشطة وشغالة",
@@ -116,6 +116,17 @@ public static class LocalizationManager
         ["btn_save_language"] = "حفظ إعدادات اللغة",
 
         ["sec_telegram"] = "التحكم عن بُعد عبر بوت تلغرام",
+        ["cloud_pairing_title"] = "الاقتران السريع ببوت وقتي (@Waqti_bot)",
+        ["cloud_pairing_desc"] = "أرسل كود الاقتران التالي في محادثتك مع البوت لربط هذا الجهاز بحسابك فوراً:",
+        ["btn_open_bot"] = "📱 فتح البوت والربط التلقائي",
+        ["btn_new_code"] = "🔄 كود جديد",
+        ["lbl_device_id"] = "معرّف الجهاز (Device ID): ",
+        ["expander_custom_bot"] = "⚙️ إعدادات متقدمة (استخدام بوت خاص Custom Bot)",
+        ["status_cloud_connected"] = "🟢 مقترن بنجاح مع تيليجرام",
+        ["status_cloud_waiting"] = "🟡 بانتظار الاقتران (أدخل الكود بالبوت)",
+        ["msg_from_parent"] = "رسالة من ولي الأمر",
+        ["msg_via_telegram"] = "عبر تيليجرام (Waqti)",
+        ["btn_ok"] = "حسناً",
         ["chk_enable_telegram"] = "تفعيل الربط مع بوت تلغرام",
         ["hint_bot_token"] = "رمز البوت (Bot Token) أو رابط الـ API كاملاً",
         ["hint_chat_id"] = "معرف المحادثة Chat ID (اتركه فارغاً واضغط Start في البوت ثم اضغط زر الاكتشاف)",
@@ -161,7 +172,7 @@ public static class LocalizationManager
         ["btn_check_update"] = "🔄 فحص التحديثات",
 
         // ═══ Bot Main Menu & Notifications ═══
-        ["menu_title"] = "🛡️ <b>لوحة تحكم الرقابة الأبوية</b>\n🖥 الجهاز: <b>{0}</b>",
+        ["menu_title"] = "🛡️ <b>لوحة تحكم وقتي (Waqti)</b>\n🖥 الجهاز: <b>{0}</b>",
         ["lang_selected"] = "✅ تم ضبط لغة البوت على: <b>العربية</b> 🇸🇦",
         ["bot_paired"] = "✅ <b>تم ربط البوت بنجاح</b>\n🖥 الجهاز: <b>{0}</b>\n💬 Chat ID: <code>{1}</code>",
         ["bot_unauthorized"] = "⛔ ليس لديك صلاحية للوصول إلى هذا البوت.",
@@ -208,8 +219,8 @@ public static class LocalizationManager
     private static readonly Dictionary<string, string> English = new()
     {
         // ═══ Application Shell & Headers ═══
-        ["app_title"] = "Waqti — Parental Control",
-        ["app_subtitle"] = "Screen Time Management & Child Safety",
+        ["app_title"] = "Waqti",
+        ["app_subtitle"] = "Smart Screen Time & Device Management",
         ["btn_settings"] = "Settings & Telegram",
         ["btn_back"] = "Back to Dashboard",
         ["service_active"] = "Service: Running",
@@ -282,6 +293,17 @@ public static class LocalizationManager
         ["btn_save_language"] = "Save Language Settings",
 
         ["sec_telegram"] = "Telegram Bot Remote Control",
+        ["cloud_pairing_title"] = "Quick Pairing with Waqti Bot (@Waqti_bot)",
+        ["cloud_pairing_desc"] = "Send the following pairing code to the bot to link this device instantly:",
+        ["btn_open_bot"] = "📱 Open Bot & Auto-Pair",
+        ["btn_new_code"] = "🔄 New Code",
+        ["lbl_device_id"] = "Device ID: ",
+        ["expander_custom_bot"] = "⚙️ Advanced Settings (Custom Bot)",
+        ["status_cloud_connected"] = "🟢 Connected to Telegram",
+        ["status_cloud_waiting"] = "🟡 Waiting for pairing (Enter PIN in bot)",
+        ["msg_from_parent"] = "Message from Parent",
+        ["msg_via_telegram"] = "via Telegram (Waqti)",
+        ["btn_ok"] = "OK",
         ["chk_enable_telegram"] = "Enable Telegram Bot integration",
         ["hint_bot_token"] = "Telegram Bot Token or full API URL",
         ["hint_chat_id"] = "Parent Chat ID (leave empty, send /start to bot, then click Detect)",
@@ -327,7 +349,7 @@ public static class LocalizationManager
         ["btn_check_update"] = "🔄 Check Updates",
 
         // ═══ Bot Main Menu & Notifications ═══
-        ["menu_title"] = "🛡️ <b>Parental Control Dashboard</b>\n🖥 Device: <b>{0}</b>",
+        ["menu_title"] = "🛡️ <b>Waqti Dashboard</b>\n🖥 Device: <b>{0}</b>",
         ["lang_selected"] = "✅ Bot language set to: <b>English</b> 🇬🇧",
         ["bot_paired"] = "✅ <b>Bot paired successfully</b>\n🖥 Device: <b>{0}</b>\n💬 Chat ID: <code>{1}</code>",
         ["bot_unauthorized"] = "⛔ You are not authorized to access this bot.",
@@ -374,8 +396,8 @@ public static class LocalizationManager
     private static readonly Dictionary<string, string> French = new()
     {
         // ═══ Application Shell & Headers ═══
-        ["app_title"] = "Contrôle Parental Windows",
-        ["app_subtitle"] = "Gestion du temps d'écran & Protection des enfants",
+        ["app_title"] = "Waqti",
+        ["app_subtitle"] = "Gestion intelligente du temps d'écran & des appareils",
         ["btn_settings"] = "Paramètres & Telegram",
         ["btn_back"] = "Retour au tableau de bord",
         ["service_active"] = "Service : En cours",
@@ -447,7 +469,18 @@ public static class LocalizationManager
         ["lang_fr_display"] = "Français",
         ["btn_save_language"] = "Enregistrer la langue",
 
-        ["sec_telegram"] = "Contrôle à distance via Bot Telegram",
+        ["sec_telegram"] = "Gestion à distance via Bot Telegram",
+        ["cloud_pairing_title"] = "Association rapide avec le Bot Waqti (@Waqti_bot)",
+        ["cloud_pairing_desc"] = "Envoyez le code d'association suivant au bot pour lier cet appareil immédiatement :",
+        ["btn_open_bot"] = "📱 Ouvrir le bot & lier",
+        ["btn_new_code"] = "🔄 Nouveau code",
+        ["lbl_device_id"] = "ID de l'appareil : ",
+        ["expander_custom_bot"] = "⚙️ Paramètres avancés (Bot personnalisé)",
+        ["status_cloud_connected"] = "🟢 Connecté à Telegram",
+        ["status_cloud_waiting"] = "🟡 En attente d'association (Entrez le code dans le bot)",
+        ["msg_from_parent"] = "Message des parents",
+        ["msg_via_telegram"] = "via Telegram (Waqti)",
+        ["btn_ok"] = "D'accord",
         ["chk_enable_telegram"] = "Activer l'intégration du bot Telegram",
         ["hint_bot_token"] = "Jeton du bot (Bot Token) ou URL complète de l'API",
         ["hint_chat_id"] = "Chat ID du parent (laissez vide, envoyez /start au bot puis cliquez sur Détecter)",
@@ -493,7 +526,7 @@ public static class LocalizationManager
         ["btn_check_update"] = "🔄 Mises à jour",
 
         // ═══ Bot Main Menu & Notifications ═══
-        ["menu_title"] = "🛡️ <b>Tableau de bord du contrôle parental</b>\n🖥 Appareil : <b>{0}</b>",
+        ["menu_title"] = "🛡️ <b>Tableau de bord Waqti</b>\n🖥 Appareil : <b>{0}</b>",
         ["lang_selected"] = "✅ Langue du bot définie sur : <b>Français</b> 🇫🇷",
         ["bot_paired"] = "✅ <b>Bot associé avec succès</b>\n🖥 Appareil : <b>{0}</b>\n💬 Chat ID : <code>{1}</code>",
         ["bot_unauthorized"] = "⛔ Vous n'êtes pas autorisé à accéder à ce bot.",

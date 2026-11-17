@@ -221,7 +221,7 @@ const TEXTS = {
     cmd_ack: "✅ <b>تم تنفيذ الأمر المجدول بنجاح!</b>\n💻 الجهاز: <code>{device}</code>\n⚙️ الإجراء: <b>{action}</b>"
   },
   en: {
-    welcome_unpaired: "👋 <b>Welcome to Waqti Parental Control Bot!</b>\n\nNo device is linked to your Telegram account yet.\n\n🔗 <b>To pair your computer:</b>\n1. Open Waqti on your child's PC.\n2. Click <b>Settings & Telegram</b>.\n3. Send the 6-digit pairing PIN here (e.g. <code>{code}</code>).\n\nOr click the direct link shown on the computer screen.",
+    welcome_unpaired: "👋 <b>Welcome to Waqti Bot!</b>\n\nNo device is linked to your Telegram account yet.\n\n🔗 <b>To pair your computer:</b>\n1. Open Waqti on your PC.\n2. Click <b>Settings & Telegram</b>.\n3. Send the 6-digit pairing PIN here (e.g. <code>{code}</code>).\n\nOr click the direct link shown on the computer screen.",
     pairing_success: "✅ <b>Device Paired Successfully!</b>\n\n💻 <b>Computer:</b> <code>{name}</code>\n🆔 <b>Device ID:</b> <code>{id}</code>\n📱 <b>Total Registered Devices:</b> {count}\n\nYou can manage this device or switch between workstations via <b>Device Management</b>.",
     pairing_invalid: "❌ Invalid or expired pairing code.\nPlease verify the 6-digit PIN on the computer settings screen.",
     main_menu_title: "🛡️ <b>Waqti Dashboard — {device}</b>",

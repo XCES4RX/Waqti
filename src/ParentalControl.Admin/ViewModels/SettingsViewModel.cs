@@ -118,6 +118,7 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnAppLanguageChanged(string value)
     {
         LocalizedStrings.Instance.ApplyLanguage(value);
+        UpdateCloudStatus();
         PersistSettings();
     }
 
@@ -374,18 +375,13 @@ public partial class SettingsViewModel : ObservableObject
 
     private void UpdateCloudStatus()
     {
-        var lang = LocalizedStrings.Instance.CurrentLanguage;
         if (IsCloudPaired)
         {
-            CloudStatusText = lang == "en" ? "🟢 Connected to Telegram" :
-                              lang == "fr" ? "🟢 Connecté à Telegram" :
-                              "🟢 مقترن بنجاح مع تيليجرام";
+            CloudStatusText = LocalizedStrings.Instance["status_cloud_connected"];
         }
         else
         {
-            CloudStatusText = lang == "en" ? "🟡 Waiting for pairing (Enter PIN in bot)" :
-                              lang == "fr" ? "🟡 En attente d'association (Entrez le code dans le bot)" :
-                              "🟡 بانتظار الاقتران (أدخل الكود بالبوت)";
+            CloudStatusText = LocalizedStrings.Instance["status_cloud_waiting"];
         }
     }
 }

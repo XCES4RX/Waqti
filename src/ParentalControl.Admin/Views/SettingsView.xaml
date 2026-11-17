@@ -95,12 +95,12 @@
                                 <DockPanel Margin="0,0,0,10">
                                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                         <md:PackIcon Kind="CloudCheck" Foreground="#16A34A" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                        <TextBlock Text="الاقتران السريع ببوت وقتي (@Waqti_bot)" FontWeight="Bold" FontSize="13" Foreground="#166534" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding [cloud_pairing_title], Source={x:Static services:LocalizedStrings.Instance}}" FontWeight="Bold" FontSize="13" Foreground="#166534" VerticalAlignment="Center" />
                                     </StackPanel>
                                     <TextBlock Text="{Binding CloudStatusText}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="12" Foreground="#15803D" VerticalAlignment="Center" />
                                 </DockPanel>
 
-                                <TextBlock Text="أرسل كود الاقتران التالي في محادثتك مع البوت لربط هذا الجهاز بحسابك فوراً:"
+                                <TextBlock Text="{Binding [cloud_pairing_desc], Source={x:Static services:LocalizedStrings.Instance}}"
                                            Foreground="#374151" FontSize="12" Margin="0,0,0,10" />
 
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,10">
@@ -108,26 +108,26 @@
                                         <TextBlock Text="{Binding PairingCode}" FontSize="22" FontWeight="Bold" Foreground="#15803D" />
                                     </Border>
 
-                                    <Button Content="📱 فتح البوت والربط التلقائي"
+                                    <Button Content="{Binding [btn_open_bot], Source={x:Static services:LocalizedStrings.Instance}}"
                                             Command="{Binding OpenTelegramBotCommand}"
                                             Background="#16A34A" Foreground="#FFFFFF"
                                             BorderThickness="0" Height="40" Margin="0,0,8,0"
                                             Style="{StaticResource MaterialDesignRaisedButton}" />
 
-                                    <Button Content="🔄 كود جديد"
+                                    <Button Content="{Binding [btn_new_code], Source={x:Static services:LocalizedStrings.Instance}}"
                                             Command="{Binding RefreshPairingCodeCommand}"
                                             Style="{StaticResource MaterialDesignOutlinedButton}"
                                             BorderBrush="#16A34A" Foreground="#16A34A" Height="40" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="معرّف الجهاز (Device ID): " Foreground="#6B7280" FontSize="11" />
+                                    <TextBlock Text="{Binding [lbl_device_id], Source={x:Static services:LocalizedStrings.Instance}}" Foreground="#6B7280" FontSize="11" />
                                     <TextBlock Text="{Binding DeviceId}" Foreground="#374151" FontSize="11" FontWeight="SemiBold" />
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
-                        <Expander Header="⚙️ إعدادات متقدمة (استخدام بوت خاص Custom Bot)" Margin="0,0,0,16">
+                        <Expander Header="{Binding [expander_custom_bot], Source={x:Static services:LocalizedStrings.Instance}}" Margin="0,0,0,16">
                             <StackPanel Margin="0,12,0,0">
                                 <CheckBox Content="{Binding [chk_enable_telegram], Source={x:Static services:LocalizedStrings.Instance}}"
                                           IsChecked="{Binding TelegramEnabled}"

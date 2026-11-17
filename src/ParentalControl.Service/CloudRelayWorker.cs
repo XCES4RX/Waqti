@@ -98,9 +98,9 @@ public sealed class CloudRelayWorker : BackgroundService
                 _logger.Warning("Error syncing with Cloud Relay: {Message}", ex.Message);
             }
 
-            // Adaptive interval: 25s when user active, 60s when idle
+            // Adaptive interval: 45s when user active, 90s when idle to conserve server resources
             var hasActiveSessions = _sessionTracker.ActiveSessions.Count > 0;
-            var delaySeconds = hasActiveSessions ? 25 : 60;
+            var delaySeconds = hasActiveSessions ? 45 : 90;
             await Task.Delay(TimeSpan.FromSeconds(delaySeconds), stoppingToken);
         }
     }
@@ -276,27 +276,68 @@ public sealed class CloudRelayWorker : BackgroundService
                 {
                     actionName = "تقرير النشاط والمواقع";
                     var today = DateOnly.FromDateTime(DateTime.Now);
-                    var restrictedUsers = UserRepository.GetAll().Where(x => x.IsRestricted).ToList();
-                    var targetUserId = restrictedUsers.Count > 0 ? restrictedUsers[0].Id : 1;
-                    var topApps = ActivityRepository.GetTopApps(targetUserId, today, 5);
-                    var topSites = ActivityRepository.GetTopSites(targetUserId, today, 5);
+                    var topApps = ActivityRepository.GetAllTopApps(today, 5);
+                    var topSites = ActivityRepository.GetAllTopSites(today, 5);
 
                     var sb = new System.Text.StringBuilder();
-                    sb.AppendLine($"📊 <b>تقرير النشاط اليومي — {Environment.MachineName} ({today:yyyy-MM-dd})</b>\n");
-                    sb.AppendLine("📱 <b>أكثر التطبيقات استخداماً:</b>");
-                    if (topApps.Count == 0) sb.AppendLine("  • لا توجد بيانات مسجلة لليوم.");
-                    foreach (var a in topApps)
-                    {
-                        var mins = a.DurationSeconds / 60;
-                        sb.AppendLine($"  • <b>{a.Name}</b>: <code>{mins}</code> دقيقة");
-                    }
+                    var lang = SettingsRepository.GetTelegramLanguage();
 
-                    sb.AppendLine("\n🌐 <b>أكثر المواقع زيارة:</b>");
-                    if (topSites.Count == 0) sb.AppendLine("  • لا توجد مواقع مسجلة لليوم.");
-                    foreach (var s in topSites)
+                    if (lang == "en")
                     {
-                        var mins = s.DurationSeconds / 60;
-                        sb.AppendLine($"  • <b>{s.Name}</b>: <code>{mins}</code> دقيقة");
+                        sb.AppendLine($"📊 <b>Daily Activity Report — {Environment.MachineName} ({today:yyyy-MM-dd})</b>\n");
+                        sb.AppendLine("📱 <b>Most Used Applications:</b>");
+                        if (topApps.Count == 0) sb.AppendLine("  • No application activity recorded today yet.");
+                        foreach (var a in topApps)
+                        {
+                            var mins = Math.Max(1, a.DurationSeconds / 60);
+                            sb.AppendLine($"  • <b>{a.Name}</b>: <code>{mins}</code> min");
+                        }
+
+                        sb.AppendLine("\n🌐 <b>Most Visited Websites:</b>");
+                        if (topSites.Count == 0) sb.AppendLine("  • No website visits recorded today yet.");
+                        foreach (var s in topSites)
+                        {
+                            var mins = Math.Max(1, s.DurationSeconds / 60);
+                            sb.AppendLine($"  • <b>{s.Name}</b>: <code>{mins}</code> min");
+                        }
+                    }
+                    else if (lang == "fr")
+                    {
+                        sb.AppendLine($"📊 <b>Rapport d'activité — {Environment.MachineName} ({today:yyyy-MM-dd})</b>\n");
+                        sb.AppendLine("📱 <b>Applications les plus utilisées :</b>");
+                        if (topApps.Count == 0) sb.AppendLine("  • Aucune activité enregistrée aujourd'hui.");
+                        foreach (var a in topApps)
+                        {
+                            var mins = Math.Max(1, a.DurationSeconds / 60);
+                            sb.AppendLine($"  • <b>{a.Name}</b>: <code>{mins}</code> min");
+                        }
+
+                        sb.AppendLine("\n🌐 <b>Sites web les plus visités :</b>");
+                        if (topSites.Count == 0) sb.AppendLine("  • Aucun site enregistré aujourd'hui.");
+                        foreach (var s in topSites)
+                        {
+                            var mins = Math.Max(1, s.DurationSeconds / 60);
+                            sb.AppendLine($"  • <b>{s.Name}</b>: <code>{mins}</code> min");
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendLine($"📊 <b>تقرير النشاط اليومي — {Environment.MachineName} ({today:yyyy-MM-dd})</b>\n");
+                        sb.AppendLine("📱 <b>أكثر البرامج والتطبيقات استخداماً:</b>");
+                        if (topApps.Count == 0) sb.AppendLine("  • لا توجد برامج مسجلة لليوم حتى الآن.");
+                        foreach (var a in topApps)
+                        {
+                            var mins = Math.Max(1, a.DurationSeconds / 60);
+                            sb.AppendLine($"  • <b>{a.Name}</b>: <code>{mins}</code> دقيقة");
+                        }
+
+                        sb.AppendLine("\n🌐 <b>أكثر المواقع زيارة:</b>");
+                        if (topSites.Count == 0) sb.AppendLine("  • لا توجد مواقع مسجلة لليوم حتى الآن.");
+                        foreach (var s in topSites)
+                        {
+                            var mins = Math.Max(1, s.DurationSeconds / 60);
+                            sb.AppendLine($"  • <b>{s.Name}</b>: <code>{mins}</code> دقيقة");
+                        }
                     }
 
                     await _client.SendEventAsync(relayUrl, _deviceId, "TOP_ACTIVITY", sb.ToString(), ct: ct);

@@ -121,14 +121,14 @@ public sealed class UsageMonitorWorker : BackgroundService
         {
             SessionManager.SendSessionMessage(
                 sessionId,
-                "Parental Control — Time Warning",
+                "Waqti — Time Warning",
                 $"Hi {username}, you have {effectiveLeft} minutes remaining before your session ends. Please save your work.");
         }
         else if (effectiveLeft <= 1 && _warnedThresholds.Add((sessionId, 1)))
         {
             SessionManager.SendSessionMessage(
                 sessionId,
-                "Parental Control — Final Warning",
+                "Waqti — Final Warning",
                 $"Hi {username}, less than 1 minute remaining! Your session will sign out very soon.");
         }
     }

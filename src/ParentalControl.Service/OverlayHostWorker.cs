@@ -249,26 +249,17 @@ public sealed class OverlayHostWorker : BackgroundService
 
     public void EnsureOverlaysRunning()
     {
-        var settings = SettingsRepository.Get();
-        if (!settings.ShowCountdownOverlay) return;
-
         var overlayExe = ResolveOverlayExePath();
         if (overlayExe is null) return;
 
         foreach (var (sessionId, session) in _sessionTracker.ActiveSessions)
         {
-            var user = UserRepository.GetBySid(session.UserSid);
-            if (user is null || !user.IsRestricted) continue;
-
-            var limit = LimitRepository.GetByUserId(user.Id);
-            if (limit is null) continue;
-
             if (!SessionManager.IsProcessRunningInSession(OverlayProcessName, sessionId))
             {
                 var launched = SessionManager.LaunchInSession(sessionId, overlayExe);
                 if (launched)
                 {
-                    _logger.Debug("Launched countdown overlay for {Username} (session {SessionId})",
+                    _logger.Debug("Launched overlay client for {Username} (session {SessionId})",
                         session.Username, sessionId);
                 }
             }
@@ -336,19 +327,34 @@ public sealed class OverlayHostWorker : BackgroundService
     private OverlayStatus BuildOverlayStatus(int sessionId)
     {
         var settings = SettingsRepository.Get();
-        if (!settings.ShowCountdownOverlay)
-            return new OverlayStatus { ShouldShow = false };
+        _pendingMessages.TryRemove(sessionId, out var pendingMsg);
 
         if (!_sessionTracker.ActiveSessions.TryGetValue(sessionId, out var session))
-            return new OverlayStatus { ShouldShow = false };
+            return new OverlayStatus { ShouldShow = false, BroadcastMessage = pendingMsg };
 
         var user = UserRepository.GetBySid(session.UserSid);
         if (user is null || !user.IsRestricted)
-            return new OverlayStatus { ShouldShow = false };
+        {
+            return new OverlayStatus
+            {
+                ShouldShow = false,
+                Username = session.Username,
+                IsRestricted = false,
+                BroadcastMessage = pendingMsg
+            };
+        }
 
         var limit = LimitRepository.GetByUserId(user.Id);
         if (limit is null)
-            return new OverlayStatus { ShouldShow = false };
+        {
+            return new OverlayStatus
+            {
+                ShouldShow = false,
+                Username = session.Username,
+                IsRestricted = true,
+                BroadcastMessage = pendingMsg
+            };
+        }
 
         var now = DateTime.Now;
         var today = DateOnly.FromDateTime(now);
@@ -366,11 +372,10 @@ public sealed class OverlayHostWorker : BackgroundService
         var policy = UserPolicyRepository.GetByUserId(user.Id);
         var sessionMinutes = Math.Max(1, usedMinutes);
         var isPaused = IsUserPaused(sessionId, out var pauseUntil);
-        _pendingMessages.TryRemove(sessionId, out var pendingMsg);
 
         return new OverlayStatus
         {
-            ShouldShow = true,
+            ShouldShow = settings.ShowCountdownOverlay,
             Username = session.Username,
             IsRestricted = true,
             DailyMinutes = limit.DailyMinutes,
@@ -420,16 +425,19 @@ public sealed class OverlayHostWorker : BackgroundService
         if (sessionId <= 0) return;
         if (!_sessionTracker.ActiveSessions.TryGetValue(sessionId, out var session)) return;
         var user = UserRepository.GetBySid(session.UserSid);
-        if (user is null) return;
+        if (user is null)
+        {
+            user = UserRepository.Upsert(session.UserSid, session.Username, false);
+        }
 
         var today = DateOnly.FromDateTime(DateTime.Now);
         if (!string.IsNullOrWhiteSpace(activeApp))
         {
-            ActivityRepository.RecordActivity(user.Id, today, "APP", activeApp, activeApp, 5);
+            ActivityRepository.RecordActivity(user.Id, today, "APP", activeApp, activeApp, 10);
         }
         if (!string.IsNullOrWhiteSpace(activeSite))
         {
-            ActivityRepository.RecordActivity(user.Id, today, "SITE", activeSite, activeSite, 5);
+            ActivityRepository.RecordActivity(user.Id, today, "SITE", activeSite, activeSite, 10);
         }
     }
 

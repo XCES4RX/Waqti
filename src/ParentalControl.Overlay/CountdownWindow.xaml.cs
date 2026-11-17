@@ -38,9 +38,7 @@ public partial class CountdownWindow : Window
         InitializeComponent();
         _sessionId = Process.GetCurrentProcess().SessionId;
 
-        var workArea = SystemParameters.WorkArea;
-        Left = workArea.Right - Width - 16;
-        Top = workArea.Top + 16;
+        PositionWindow();
 
         Closing += (_, e) =>
         {
@@ -56,6 +54,13 @@ public partial class CountdownWindow : Window
         _syncTimer.Start();
 
         Loaded += async (_, _) => await SyncStatusAsync();
+    }
+
+    private void PositionWindow()
+    {
+        var workArea = SystemParameters.WorkArea;
+        Left = workArea.Right - Width - 16;
+        Top = workArea.Top + 16;
     }
 
     private void CardBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -176,12 +181,31 @@ public partial class CountdownWindow : Window
 
             if (!status.ShouldShow)
             {
-                _allowClose = true;
+                if (Visibility != Visibility.Collapsed)
+                {
+                    Visibility = Visibility.Collapsed;
+                    Width = 0;
+                    Height = 0;
+                    ShowInTaskbar = false;
+                }
                 _tickTimer.Stop();
-                _syncTimer.Stop();
                 _dashboardWindow?.Close();
-                Close();
+
+                if (!string.IsNullOrWhiteSpace(status.BroadcastMessage))
+                {
+                    var msgWin = new NotificationMessageWindow(status.BroadcastMessage);
+                    msgWin.Show();
+                }
                 return;
+            }
+
+            if (Visibility != Visibility.Visible)
+            {
+                Width = 240;
+                Height = 64;
+                PositionWindow();
+                Visibility = Visibility.Visible;
+                if (!_tickTimer.IsEnabled) _tickTimer.Start();
             }
 
             _isPaused = status.IsPaused;

@@ -38,6 +38,45 @@ public static class ActivityRepository
         return GetTop(userId, date, "SITE", limit);
     }
 
+    public static List<ActivityItem> GetAllTopApps(DateOnly date, int limit = 5)
+    {
+        return GetAllTop(date, "APP", limit);
+    }
+
+    public static List<ActivityItem> GetAllTopSites(DateOnly date, int limit = 5)
+    {
+        return GetAllTop(date, "SITE", limit);
+    }
+
+    private static List<ActivityItem> GetAllTop(DateOnly date, string type, int limit)
+    {
+        var items = new List<ActivityItem>();
+        using var connection = DatabaseManager.CreateConnection();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT name, MAX(title) as title, SUM(duration_seconds) as total_duration
+            FROM activity_log
+            WHERE date = @date AND activity_type = @type
+            GROUP BY name
+            ORDER BY total_duration DESC
+            LIMIT @limit;
+            """;
+        cmd.Parameters.AddWithValue("@date", date.ToString("yyyy-MM-dd"));
+        cmd.Parameters.AddWithValue("@type", type);
+        cmd.Parameters.AddWithValue("@limit", limit);
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            items.Add(new ActivityItem(
+                reader.GetString(0),
+                reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                reader.GetInt32(2)
+            ));
+        }
+        return items;
+    }
+
     private static List<ActivityItem> GetTop(int userId, DateOnly date, string type, int limit)
     {
         var items = new List<ActivityItem>();

@@ -5,8 +5,8 @@
 <h1 align="center">Waqti | وقتي</h1>
 
 <p align="center">
-  <b>Modern Windows Parental Control, Screen Time Management & 24/7 Cloud Remote Administration</b><br>
-  <b>نظام وقتي المتكامل لإدارة وقت الشاشة، الرقابة الأبوية، والتحكم السحابي عبر تيليجرام</b>
+  <b>Modern Windows Screen Time Management, Device Control & 24/7 Cloud Remote Administration</b><br>
+  <b>منظومة وقتي المتكاملة لإدارة وقت استخدام الشاشة وتنظيم الأجهزة والتحكم السحابي عبر تيليجرام</b>
 </p>
 
 <p align="center">
@@ -35,7 +35,7 @@
 
 ## 🌟 نظرة عامة على برنامج وقتي (Waqti)
 
-**وقتي (Waqti)** هو منصة حديثة واحترافية للرقابة الأبوية وإدارة وقت الشاشة وحماية الأطفال على أجهزة Windows 10 و Windows 11. يعمل البرنامج كخدمة نظام ذاتية ومستقلة (`Windows Service`) بصلاحيات النظام العالية (`LocalSystem`)، مما يضمن تطبيق القيود والحدود اليومية بدقة بالغة حتى لو كان الكمبيوتر غير متصل بالإنترنت، مع منع أي محاولة لتجاوز النظام أو إيقافه من حسابات الأطفال العادية.
+**وقتي (Waqti)** هو منصة حديثة واحترافية لإدارة وتنظيم وقت استخدام الشاشة وحماية الأجهزة على أنظمة Windows 10 و Windows 11. يعمل البرنامج كخدمة نظام ذاتية ومستقلة (`Windows Service`) بصلاحيات النظام العالية (`LocalSystem`)، مما يضمن تطبيق القيود والحدود اليومية بدقة بالغة حتى لو كان الكمبيوتر غير متصل بالإنترنت، مع منع أي محاولة لتجاوز النظام أو إيقافه من حسابات المستخدمين العادية.
 
 يتميز البرنامج بربط سحابي متطور يعمل على مدار الساعة (24/7) عبر بوت تيليجرام الرسمي **[@Waqti_bot](https://t.me/Waqti_bot)**، مما يمكّن الوالدين من متابعة وإدارة أجهزة أطفالهم من أي مكان في العالم: استلام لقطات شاشة مباشرة، تعديل الأوقات بنقرة زر، إرسال رسائل فورية للشاشة، تفعيل وقت الاستراحة، وإدارة عدة أجهزة من حساب تلغرام واحد.
 
@@ -88,7 +88,7 @@
 
 ## 🌟 English Overview
 
-**Waqti (وقتي)** is an enterprise-grade parental control and digital wellbeing management system built natively for 64-bit Windows 10 and 11 environments. Operating as an autonomous background Windows Service under the high-privilege `LocalSystem` security context, Waqti enforces strict daily screen time quotas, curfew windows, application blacklists, and DNS protection policies—guaranteeing tamper resistance and offline-first reliability.
+**Waqti (وقتي)** is an enterprise-grade screen time management and device wellbeing platform built natively for 64-bit Windows 10 and 11 environments. Operating as an autonomous background Windows Service under the high-privilege `LocalSystem` security context, Waqti enforces strict daily screen time quotas, curfew windows, application blacklists, and DNS protection policies—guaranteeing tamper resistance and offline-first reliability.
 
 Parents can manage their family workstations 24/7 from anywhere in the world using the official Telegram bot **[@Waqti_bot](https://t.me/Waqti_bot)**: request live desktop screenshots, adjust remaining quotas on the fly, dispatch remote messages to child monitors, toggle bedtime curfews, and switch seamlessly between multiple managed workstations within a single Telegram interface.
 

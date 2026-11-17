@@ -17,6 +17,14 @@ public partial class NotificationMessageWindow : Window
         if (isArabic)
         {
             TxtTitle.Text = "رسالة من ولي الأمر";
+            TxtSubtitle.Text = "عبر تيليجرام (Waqti)";
+            BtnOk.Content = "حسناً";
+        }
+        else
+        {
+            TxtTitle.Text = "Message from Parent";
+            TxtSubtitle.Text = "via Telegram (Waqti)";
+            BtnOk.Content = "OK";
         }
 
         MouseDown += (_, e) =>

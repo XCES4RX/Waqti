@@ -7,7 +7,7 @@ using ParentalControl.Service;
 
 DatabaseManager.Initialize();
 var logger = LoggingConfig.CreateLogger("Service");
-logger.Information("Parental Control Service starting");
+logger.Information("Waqti Service starting");
 
 var builder = Host.CreateApplicationBuilder(args);
 

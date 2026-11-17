@@ -34,8 +34,8 @@
                     <TextBlock Text="💬" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock x:Name="TxtTitle" Text="Message from Parents" Foreground="#F8FAFC" FontSize="15" FontWeight="Bold" />
-                    <TextBlock Text="رسالة من ولي الأمر عبر تيليجرام" Foreground="#94A3B8" FontSize="11" />
+                    <TextBlock x:Name="TxtTitle" Text="Message from Parent" Foreground="#F8FAFC" FontSize="15" FontWeight="Bold" />
+                    <TextBlock x:Name="TxtSubtitle" Text="via Telegram (Waqti)" Foreground="#94A3B8" FontSize="11" />
                 </StackPanel>
             </StackPanel>
 
@@ -47,7 +47,7 @@
             </Border>
 
             <!-- Action Button -->
-            <Button Grid.Row="2" Click="BtnOk_Click" Content="حسناً / OK" Height="36" Width="120" HorizontalAlignment="Right"
+            <Button x:Name="BtnOk" Grid.Row="2" Click="BtnOk_Click" Content="OK" Height="36" Width="120" HorizontalAlignment="Right"
                     Background="#2563EB" Foreground="#FFFFFF" BorderThickness="0" FontWeight="Bold" FontSize="12.5" Cursor="Hand">
                 <Button.Resources>
                     <Style TargetType="Border">
