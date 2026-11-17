@@ -3,9 +3,11 @@
 
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const botToken = env.BOT_TOKEN || "9002447766:AAEUHZg-JMxwUn3S_OCW1DwbrccUbXkjblo";
-    const botUsername = env.BOT_USERNAME || "Waqti_bot";
+    try {
+      await ensureDbInitialized(env);
+      const url = new URL(request.url);
+      const botToken = env.BOT_TOKEN || "9002447766:AAEUHZg-JMxwUn3S_OCW1DwbrccUbXkjblo";
+      const botUsername = env.BOT_USERNAME || "Waqti_bot";
 
     // 1. Telegram Webhook Handler
     if (request.method === "POST" && (url.pathname === "/webhook" || url.pathname === "/")) {
@@ -53,21 +55,32 @@ export default {
       const data = await request.json();
       const deviceId = data.deviceId;
       let device = await getKV(env, `dev:${deviceId}`);
-      if (!device) return jsonResponse({ success: false, error: "Device not found" }, 404);
+      if (!device) {
+        device = {
+          deviceId,
+          deviceName: data.deviceName || "PC",
+          pairingCode: Math.floor(100000 + Math.random() * 900000).toString(),
+          ownerChatId: null,
+          lastSeen: new Date().toISOString(),
+          pendingCommands: []
+        };
+        await putKV(env, `dev:${deviceId}`, device);
+        await putKV(env, `pin:${device.pairingCode}`, deviceId);
+      }
 
       const commands = device.pendingCommands || [];
       const hasCommandsToClear = commands.length > 0;
 
       const now = Date.now();
-      const lastKvWrite = device._lastKvWrite || 0;
+      const lastWrite = device._lastWrite || 0;
       const statusChanged = data.status && JSON.stringify(data.status) !== JSON.stringify(device.status);
-      const timeForPeriodicWrite = (now - lastKvWrite) > 180000; // Periodic write every 3 minutes
+      const timeForPeriodicWrite = (now - lastWrite) > 60000; // Periodic write every 60s
 
       if (hasCommandsToClear || statusChanged || timeForPeriodicWrite) {
         device.lastSeen = new Date(now).toISOString();
         if (data.status) device.status = data.status;
         device.pendingCommands = [];
-        device._lastKvWrite = now;
+        device._lastWrite = now;
         await putKV(env, `dev:${deviceId}`, device);
       }
 
@@ -137,23 +150,59 @@ export default {
       service: "Waqti Cloudflare Relay (Multi-Device)",
       botUsername
     });
+    } catch (err) {
+      console.error("Worker root error:", err);
+      return jsonResponse({ success: false, error: String(err?.message || err) }, 500);
+    }
   }
 };
 
 // -------------------------------------------------------------
-// KV Helpers
+// Database (Cloudflare D1 + Memory Cache)
 // -------------------------------------------------------------
+const memoryStore = new Map();
+let isTableInitialized = false;
+
+async function ensureDbInitialized(env) {
+  if (!isTableInitialized && env.DB) {
+    try {
+      await env.DB.prepare(
+        "CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER)"
+      ).run();
+      isTableInitialized = true;
+    } catch (e) {
+      console.error("D1 init error:", e);
+    }
+  }
+}
+
 async function getKV(env, key) {
-  const kv = env.WAQTI_DB;
-  if (!kv) return null;
-  const val = await kv.get(key);
-  return val ? JSON.parse(val) : null;
+  if (env.DB) {
+    try {
+      const row = await env.DB.prepare("SELECT value FROM kv_store WHERE key = ?").bind(key).first();
+      if (row && row.value) {
+        const parsed = JSON.parse(row.value);
+        memoryStore.set(key, parsed);
+        return parsed;
+      }
+    } catch (e) {
+      console.error("D1 get error:", e);
+    }
+  }
+  return memoryStore.get(key) || null;
 }
 
 async function putKV(env, key, val) {
-  const kv = env.WAQTI_DB;
-  if (!kv) return;
-  await kv.put(key, JSON.stringify(val));
+  memoryStore.set(key, val);
+  if (env.DB) {
+    try {
+      await env.DB.prepare(
+        "INSERT INTO kv_store (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
+      ).bind(key, JSON.stringify(val), Date.now()).run();
+    } catch (e) {
+      console.error("D1 put error:", e);
+    }
+  }
 }
 
 function jsonResponse(data, status = 200) {

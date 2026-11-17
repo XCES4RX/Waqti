@@ -8,10 +8,11 @@
     "BOT_TOKEN": "9002447766:AAEUHZg-JMxwUn3S_OCW1DwbrccUbXkjblo",
     "BOT_USERNAME": "Waqti_bot"
   },
-  "kv_namespaces": [
+  "d1_databases": [
     {
-      "binding": "WAQTI_DB",
-      "id": "16f11539cb8e433fa6a17de4ea59df6b"
+      "binding": "DB",
+      "database_name": "waqti_db",
+      "database_id": "0886aa93-1ece-4db1-b7c3-0ebeb4397d6a"
     }
   ]
 }
