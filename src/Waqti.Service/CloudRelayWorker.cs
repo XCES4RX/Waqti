@@ -51,6 +51,7 @@ public sealed class CloudRelayWorker : BackgroundService
                 continue;
             }
 
+            var hadCommands = false;
             try
             {
                 // 1. Ensure registered once or if pairing code is missing
@@ -86,6 +87,7 @@ public sealed class CloudRelayWorker : BackgroundService
                     // 4. Process returned commands
                     if (hbResult.Commands.Count > 0)
                     {
+                        hadCommands = true;
                         foreach (var cmd in hbResult.Commands)
                         {
                             await ExecuteCommandAsync(settings.CloudRelayUrl, cmd, stoppingToken);
@@ -98,9 +100,8 @@ public sealed class CloudRelayWorker : BackgroundService
                 _logger.Warning("Error syncing with Cloud Relay: {Message}", ex.Message);
             }
 
-            // Adaptive interval: 45s when user active, 90s when idle to conserve server resources
-            var hasActiveSessions = _sessionTracker.ActiveSessions.Count > 0;
-            var delaySeconds = hasActiveSessions ? 45 : 90;
+            // Responsive interval: 10s for snappy Telegram commands; 3s if commands were just processed
+            var delaySeconds = hadCommands ? 3 : 10;
             await Task.Delay(TimeSpan.FromSeconds(delaySeconds), stoppingToken);
         }
     }
@@ -267,7 +268,7 @@ public sealed class CloudRelayWorker : BackgroundService
                     var shot = await _overlayHost.CaptureScreenshotAsync(ct);
                     if (shot is not null)
                     {
-                        await _client.UploadScreenshotAsync(relayUrl, _deviceId, shot.Value.PngBytes, ct);
+                        await _client.UploadScreenshotAsync(relayUrl, _deviceId, shot.Value.Bytes, ct);
                     }
                     break;
                 }

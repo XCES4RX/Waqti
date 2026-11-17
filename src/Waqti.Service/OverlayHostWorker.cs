@@ -266,7 +266,7 @@ public sealed class OverlayHostWorker : BackgroundService
         }
     }
 
-    public async Task<(byte[] PngBytes, string Username, int SessionId)?> CaptureScreenshotAsync(CancellationToken ct = default)
+    public async Task<(byte[] Bytes, string Username, int SessionId)?> CaptureScreenshotAsync(CancellationToken ct = default)
     {
         var overlayExe = ResolveOverlayExePath();
         if (overlayExe is null)
@@ -293,7 +293,7 @@ public sealed class OverlayHostWorker : BackgroundService
             return null;
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(8));
 
         await pipe.WaitForConnectionAsync(timeoutCts.Token);
         using var ms = new MemoryStream();

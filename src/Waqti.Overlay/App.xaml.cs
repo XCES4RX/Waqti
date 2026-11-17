@@ -22,14 +22,14 @@ public partial class App : System.Windows.Application
         if (e.Args.Length >= 2 && e.Args[0].Equals("--screenshot-pipe", StringComparison.OrdinalIgnoreCase))
         {
             var exitCode = CaptureScreenshotToPipe(e.Args[1]) ? 0 : 1;
-            Shutdown(exitCode);
+            Environment.Exit(exitCode);
             return;
         }
 
         if (e.Args.Length >= 2 && e.Args[0].Equals("--screenshot", StringComparison.OrdinalIgnoreCase))
         {
             var exitCode = CaptureScreenshot(e.Args[1]) ? 0 : 1;
-            Shutdown(exitCode);
+            Environment.Exit(exitCode);
             return;
         }
 
@@ -60,33 +60,54 @@ public partial class App : System.Windows.Application
         base.OnExit(e);
     }
 
-    private static byte[]? CapturePngBytes()
+    private static byte[]? CaptureJpegBytes(long quality = 75L)
     {
-        SetProcessDPIAware();
-        var bounds = SystemInformation.VirtualScreen;
-        if (bounds.Width <= 0 || bounds.Height <= 0)
+        try
+        {
+            SetProcessDPIAware();
+            var bounds = SystemInformation.VirtualScreen;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+                bounds = Screen.PrimaryScreen?.Bounds ?? Rectangle.Empty;
+
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+                return null;
+
+            using var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
+            using var graphics = Graphics.FromImage(bitmap);
+            graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size, CopyPixelOperation.SourceCopy);
+
+            using var ms = new MemoryStream();
+            var encoder = ImageCodecInfo.GetImageEncoders().FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);
+            if (encoder != null)
+            {
+                using var encoderParams = new EncoderParameters(1);
+                encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+                bitmap.Save(ms, encoder, encoderParams);
+            }
+            else
+            {
+                bitmap.Save(ms, ImageFormat.Jpeg);
+            }
+            return ms.ToArray();
+        }
+        catch
+        {
             return null;
-
-        using var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
-        using var graphics = Graphics.FromImage(bitmap);
-        graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size, CopyPixelOperation.SourceCopy);
-
-        using var ms = new MemoryStream();
-        bitmap.Save(ms, ImageFormat.Png);
-        return ms.ToArray();
+        }
     }
 
     private static bool CaptureScreenshotToPipe(string pipeName)
     {
         try
         {
-            var bytes = CapturePngBytes();
-            if (bytes is null) return false;
+            var bytes = CaptureJpegBytes(75L);
+            if (bytes is null || bytes.Length == 0) return false;
 
             using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.Out);
             pipe.Connect(5000);
             pipe.Write(bytes, 0, bytes.Length);
             pipe.Flush();
+            try { pipe.WaitForPipeDrain(); } catch {}
             return true;
         }
         catch
@@ -99,8 +120,8 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            var bytes = CapturePngBytes();
-            if (bytes is null) return false;
+            var bytes = CaptureJpegBytes(75L);
+            if (bytes is null || bytes.Length == 0) return false;
 
             var dir = Path.GetDirectoryName(outputPath);
             if (!string.IsNullOrEmpty(dir))

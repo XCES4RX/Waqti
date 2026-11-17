@@ -83,7 +83,11 @@ export default {
       const data = await request.json();
       const device = await getKV(env, `dev:${data.deviceId}`);
       if (device && device.ownerChatId) {
-        await sendTelegram(botToken, device.ownerChatId, `✅ <b>تم تنفيذ الأمر بنجاح!</b>\n💻 الجهاز: <code>${device.deviceName || 'PC'}</code>\n⚙️ الإجراء: <b>${data.action || 'الأمر'}</b>`);
+        const act = data.action || "";
+        // Don't send redundant ACK messages for actions that post their own rich output
+        if (act !== "take_screenshot" && act !== "get_top" && act !== "التقاط صورة شاشة" && act !== "تقرير النشاط والمواقع") {
+          await sendTelegram(botToken, device.ownerChatId, `✅ <b>تم تنفيذ الأمر بنجاح!</b>\n💻 الجهاز: <code>${device.deviceName || 'PC'}</code>\n⚙️ الإجراء: <b>${act || 'الأمر'}</b>`);
+        }
       }
       return jsonResponse({ success: true });
     }
@@ -103,9 +107,26 @@ export default {
       const deviceId = url.searchParams.get("deviceId");
       const device = await getKV(env, `dev:${deviceId}`);
       if (device && device.ownerChatId) {
-        const bodyBase64 = await request.text();
-        const buffer = Uint8Array.from(atob(bodyBase64), c => c.charCodeAt(0));
-        await sendTelegramPhoto(botToken, device.ownerChatId, buffer, `📸 لقطة شاشة حيّة — ${device.deviceName} (${new Date().toLocaleTimeString()})`);
+        let buffer = null;
+        const contentType = request.headers.get("content-type") || "";
+        if (contentType.includes("octet-stream") || contentType.includes("image/")) {
+          buffer = new Uint8Array(await request.arrayBuffer());
+        } else {
+          const bodyText = await request.text();
+          try {
+            const binary = atob(bodyText.trim());
+            buffer = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
+          } catch (e) {
+            console.error("Base64 decode failed:", e);
+          }
+        }
+
+        if (buffer && buffer.length > 0) {
+          const timeStr = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const caption = `📸 <b>لقطة شاشة حيّة</b>\n🖥 الجهاز: <b>${device.deviceName || 'PC'}</b>\n⏰ الوقت: <code>${timeStr}</code>`;
+          await sendTelegramPhoto(botToken, device.ownerChatId, buffer, caption);
+        }
       }
       return jsonResponse({ success: true });
     }
@@ -123,14 +144,14 @@ export default {
 // KV Helpers
 // -------------------------------------------------------------
 async function getKV(env, key) {
-  const kv = env.WAQTI_DB || env.PARENTAL_DB;
+  const kv = env.WAQTI_DB;
   if (!kv) return null;
   const val = await kv.get(key);
   return val ? JSON.parse(val) : null;
 }
 
 async function putKV(env, key, val) {
-  const kv = env.WAQTI_DB || env.PARENTAL_DB;
+  const kv = env.WAQTI_DB;
   if (!kv) return;
   await kv.put(key, JSON.stringify(val));
 }
@@ -146,55 +167,76 @@ function jsonResponse(data, status = 200) {
 // Telegram API Helpers
 // -------------------------------------------------------------
 async function sendTelegram(token, chatId, text, replyMarkup = null) {
-  const payload = { chat_id: chatId, text, parse_mode: "HTML" };
-  if (replyMarkup) payload.reply_markup = replyMarkup;
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+  try {
+    const payload = { chat_id: chatId, text, parse_mode: "HTML" };
+    if (replyMarkup) payload.reply_markup = replyMarkup;
+    let res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      // If HTML entity parsing fails, retry without parse_mode
+      delete payload.parse_mode;
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
+  } catch (err) {
+    console.error("sendTelegram error:", err);
+  }
 }
 
 async function answerCallback(token, callbackQueryId, text = null, showAlert = false) {
-  const payload = { callback_query_id: callbackQueryId };
-  if (text) {
-    payload.text = text;
-    payload.show_alert = showAlert;
-  }
-  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+  try {
+    const payload = { callback_query_id: callbackQueryId };
+    if (text) {
+      payload.text = text;
+      payload.show_alert = showAlert;
+    }
+    await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {}
 }
 
 async function sendTelegramPhoto(token, chatId, photoBytes, caption = "") {
-  const boundary = "----WebKitFormBoundary" + crypto.randomUUID().slice(0, 12);
-  const enc = new TextEncoder();
-  const parts = [];
+  try {
+    const form = new FormData();
+    form.append("chat_id", String(chatId));
+    if (caption) {
+      form.append("caption", caption);
+      form.append("parse_mode", "HTML");
+    }
+    form.append("photo", new Blob([photoBytes], { type: "image/jpeg" }), "screenshot.jpg");
 
-  parts.push(enc.encode(`--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}\r\n`));
-  if (caption) {
-    parts.push(enc.encode(`--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n${caption}\r\n`));
+    let res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: "POST",
+      body: form
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("sendTelegramPhoto error:", res.status, err);
+      if (caption) {
+        // Fallback without parse_mode
+        const fallbackForm = new FormData();
+        fallbackForm.append("chat_id", String(chatId));
+        fallbackForm.append("caption", caption.replace(/<[^>]+>/g, ""));
+        fallbackForm.append("photo", new Blob([photoBytes], { type: "image/jpeg" }), "screenshot.jpg");
+        await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+          method: "POST",
+          body: fallbackForm
+        });
+      }
+    }
+  } catch (err) {
+    console.error("sendTelegramPhoto exception:", err);
   }
-  parts.push(enc.encode(`--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="screenshot.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`));
-  parts.push(photoBytes);
-  parts.push(enc.encode(`\r\n--${boundary}--\r\n`));
-
-  let totalLen = 0;
-  for (const p of parts) totalLen += p.byteLength;
-  const merged = new Uint8Array(totalLen);
-  let offset = 0;
-  for (const p of parts) {
-    merged.set(p, offset);
-    offset += p.byteLength;
-  }
-
-  await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
-    method: "POST",
-    headers: { "Content-Type": `multipart/form-data; boundary=${boundary}` },
-    body: merged
-  });
 }
 
 function formatMinutes(min) {
@@ -208,7 +250,7 @@ function formatMinutes(min) {
 function isOnline(dev) {
   if (!dev || !dev.lastSeen) return false;
   const diffSec = (Date.now() - new Date(dev.lastSeen).getTime()) / 1000;
-  return diffSec <= 220;
+  return diffSec <= 300;
 }
 
 function buildMainKeyboard(user, dev) {
@@ -384,6 +426,16 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       return;
     }
 
+    if (text === "/screenshot" || text.includes("لقطة") || text.includes("شاشة")) {
+      if (!isOnline(currentDev)) {
+        await sendTelegram(botToken, chatId, "⚠️ الجهاز غير متصل حالياً لالتقاط الشاشة.");
+        return;
+      }
+      await enqueueCommand(env, currentDev.deviceId, "take_screenshot", { chatId });
+      await sendTelegram(botToken, chatId, `📸 <b>جاري التقاط ونقل لقطة الشاشة من جهاز (${currentDev.deviceName || 'PC'})...</b>`);
+      return;
+    }
+
     if (text.startsWith("/msg ")) {
       const msgText = text.substring(5).trim();
       await enqueueCommand(env, currentDev.deviceId, "send_msg", { message: msgText });
@@ -403,9 +455,15 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       return;
     }
 
-    if (text.startsWith("/top")) {
+    if (text.startsWith("/top") || text.includes("الأكثر استخداما")) {
       await enqueueCommand(env, currentDev.deviceId, "get_top");
-      await sendTelegram(botToken, chatId, `📊 جاري جلب تقرير البرامج والمواقع الأكثر استخداماً...`);
+      await sendTelegram(botToken, chatId, `📊 <b>جاري جلب تقرير البرامج والمواقع الأكثر استخداماً من جهاز (${currentDev.deviceName || 'PC'})...</b>`);
+      return;
+    }
+
+    if (text === "/dns") {
+      await enqueueCommand(env, currentDev.deviceId, "toggle_dns");
+      await sendTelegram(botToken, chatId, "🛡️ تم إرسال أمر تبديل حماية Family DNS المانع للمواقع الإباحية والضارة.");
       return;
     }
 
@@ -485,6 +543,7 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       }
       await answerCallback(botToken, cb.id, "جاري التقاط لقطة الشاشة...");
       await enqueueCommand(env, dev.deviceId, "take_screenshot", { chatId });
+      await sendTelegram(botToken, chatId, `📸 <b>جاري التقاط ونقل لقطة الشاشة من جهاز (${dev.deviceName || 'PC'})...</b>`);
       return;
     }
 

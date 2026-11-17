@@ -108,9 +108,9 @@ public partial class ChildDashboardWindow : Window
             TxtRemainingLabel.Text = "TEMPS RESTANT AUJOURD'HUI";
             TxtScheduleLabel.Text = "Plage horaire autorisée";
             TxtSessionLabel.Text = "Session en cours";
-            TxtSafeguards.Text = "Protections système et règles de sécurité parentales actives.";
+            TxtSafeguards.Text = "Protections système et règles de sécurité actives.";
             TxtRequestTitle.Text = "Demander du temps supplémentaire";
-            TxtRequestDesc.Text = "Besoin de plus de temps pour vos devoirs ? Envoyez une demande à vos parents sur Telegram.";
+            TxtRequestDesc.Text = "Besoin de plus de temps pour vos devoirs ? Envoyez une demande via Telegram.";
             BtnReq15.Content = "+15 Min";
             BtnReq30.Content = "+30 Min";
             BtnReq60.Content = "+1 Heure";
@@ -122,9 +122,9 @@ public partial class ChildDashboardWindow : Window
             TxtRemainingLabel.Text = "TIME LEFT TODAY";
             TxtScheduleLabel.Text = "Allowed Schedule";
             TxtSessionLabel.Text = "Current Session";
-            TxtSafeguards.Text = "System safeguards and parental restrictions are active.";
+            TxtSafeguards.Text = "System safeguards and time restrictions are active.";
             TxtRequestTitle.Text = "Request Extra Screen Time";
-            TxtRequestDesc.Text = "Need more time for homework or study? Send a request to your parents via Telegram.";
+            TxtRequestDesc.Text = "Need more time for homework or study? Send a request via Telegram.";
             BtnReq15.Content = "+15 Min";
             BtnReq30.Content = "+30 Min";
             BtnReq60.Content = "+1 Hour";
@@ -175,9 +175,9 @@ public partial class ChildDashboardWindow : Window
             {
                 TxtFeedback.Text = _currentLang switch
                 {
-                    "ar" => $"✅ تم إرسال طلب (+{minutes} دقيقة) بنجاح! بانتظار موافقة ولي الأمر ⏳",
+                    "ar" => $"✅ تم إرسال طلب (+{minutes} دقيقة) بنجاح! بانتظار الموافقة ⏳",
                     "fr" => $"✅ Demande (+{minutes} min) envoyée ! En attente d'approbation ⏳",
-                    _ => $"✅ Request (+{minutes} min) sent! Waiting for parental approval ⏳"
+                    _ => $"✅ Request (+{minutes} min) sent! Waiting for approval ⏳"
                 };
                 TxtFeedback.Foreground = new SolidColorBrush(MediaColor.FromRgb(0x10, 0xB9, 0x81));
             }

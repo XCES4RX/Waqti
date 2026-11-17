@@ -64,7 +64,7 @@ public partial class SettingsViewModel : ObservableObject
     private bool _cloudRelayEnabled = true;
 
     [ObservableProperty]
-    private string _cloudRelayUrl = "https://parental-control-relay.cpcontrol.workers.dev";
+    private string _cloudRelayUrl = "https://waqti-relay.cpcontrol.workers.dev";
 
     [ObservableProperty]
     private string _deviceId = string.Empty;

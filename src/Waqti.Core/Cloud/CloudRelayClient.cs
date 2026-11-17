@@ -149,8 +149,8 @@ public sealed class CloudRelayClient
         try
         {
             var url = $"{relayUrl.TrimEnd('/')}/api/device/upload-screenshot?deviceId={Uri.EscapeDataString(deviceId)}";
-            var base64 = Convert.ToBase64String(jpegBytes);
-            using var content = new StringContent(base64);
+            using var content = new ByteArrayContent(jpegBytes);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
             _ = await _http.PostAsync(url, content, ct);
         }
         catch {}
