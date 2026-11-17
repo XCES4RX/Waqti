@@ -820,6 +820,52 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       }
     }
 
+    if (text === "/stats" || text === "/admin" || text.includes("إحصائيات") || text.includes("المستخدمين")) {
+      let statsMsg = "📊 <b>إحصائيات تطبيق وقتي (Waqti Analytics)</b>\n\n";
+
+      // 1. D1 Database Stats
+      try {
+        if (env.DB) {
+          const devRow = await env.DB.prepare("SELECT count(*) as count FROM kv_store WHERE key LIKE 'dev:%'").first();
+          const onlineRow = await env.DB.prepare("SELECT count(*) as count FROM kv_store WHERE key LIKE 'dev:%' AND datetime(substr(json_extract(value, '$.lastSeen'), 1, 19)) > datetime('now', '-10 minutes')").first();
+          const usrRow = await env.DB.prepare("SELECT count(*) as count FROM kv_store WHERE key LIKE 'usr:%'").first();
+
+          statsMsg += `💻 <b>الأجهزة والاتصال:</b>\n`;
+          statsMsg += `• إجمالي أجهزة الكمبيوتر: <b>${devRow?.count || 0}</b> جهاز\n`;
+          statsMsg += `• المتصلة والنشطة الآن 🟢: <b>${onlineRow?.count || 0}</b> جهاز\n`;
+          statsMsg += `• أولياء الأمور المشتركون بالبوت 👥: <b>${usrRow?.count || 0}</b> مستخدم\n\n`;
+        }
+      } catch (err) {
+        statsMsg += `⚠️ خطأ في قراءة الأجهزة: ${err.message}\n\n`;
+      }
+
+      // 2. GitHub Releases Downloads
+      try {
+        const ghRes = await fetch("https://api.github.com/repos/XCES4RX/Waqti/releases", {
+          headers: { "User-Agent": "Waqti-Relay" }
+        });
+        if (ghRes.ok) {
+          const releases = await ghRes.json();
+          let totalDownloads = 0;
+          let breakdown = "";
+          for (const r of releases) {
+            const count = (r.assets || []).reduce((sum, a) => sum + (a.download_count || 0), 0);
+            totalDownloads += count;
+            breakdown += `  ▫️ ${r.tag_name}: <b>${count}</b> تحميل\n`;
+          }
+          statsMsg += `📥 <b>تحميلات البرنامج من GitHub:</b>\n`;
+          statsMsg += `• إجمالي التحميلات: <b>${totalDownloads}</b> مرة\n`;
+          statsMsg += breakdown + `\n`;
+        }
+      } catch (err) {
+        statsMsg += `⚠️ تعذر جلب إحصائيات GitHub: ${err.message}\n\n`;
+      }
+
+      statsMsg += `🕒 <i>تحديث فوري — وقتي (Waqti)</i>`;
+      await sendTelegram(botToken, chatId, statsMsg);
+      return;
+    }
+
     if (text === "/update" || text.includes("تحديث")) {
       await enqueueCommand(env, currentDev.deviceId, "check_update");
       await sendTelegram(botToken, chatId, t.update_sent);
