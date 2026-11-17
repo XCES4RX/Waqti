@@ -35,6 +35,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private SolidColorBrush _telegramStatusColor = Brushes.Gray;
 
+    [ObservableProperty]
+    private string _telegramStatusToolTip = string.Empty;
+
     public MainViewModel()
     {
         _dashboardVm = new DashboardViewModel(NavigateToUserDetail);
@@ -150,29 +153,48 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var settings = SettingsRepository.Get();
-            if (settings.TelegramEnabled && !string.IsNullOrWhiteSpace(settings.TelegramBotToken))
+            if (settings.CloudRelayEnabled)
+            {
+                if (settings.IsCloudPaired)
+                {
+                    TelegramStatusText = LocalizationManager.T("telegram_cloud_active", lang);
+                    TelegramStatusColor = new SolidColorBrush(Color.FromRgb(22, 163, 74)); // Modern Green
+                    TelegramStatusToolTip = LocalizationManager.T("telegram_tooltip_cloud_active", lang);
+                }
+                else
+                {
+                    TelegramStatusText = LocalizationManager.T("telegram_cloud_pairing", lang);
+                    TelegramStatusColor = new SolidColorBrush(Color.FromRgb(217, 119, 6)); // Amber / Orange
+                    TelegramStatusToolTip = LocalizationManager.T("telegram_tooltip_cloud_pairing", lang);
+                }
+            }
+            else if (settings.TelegramEnabled && !string.IsNullOrWhiteSpace(settings.TelegramBotToken))
             {
                 if (string.IsNullOrWhiteSpace(settings.TelegramChatId))
                 {
                     TelegramStatusText = LocalizationManager.T("telegram_pairing", lang);
-                    TelegramStatusColor = new SolidColorBrush(Color.FromRgb(245, 158, 11)); // Amber
+                    TelegramStatusColor = new SolidColorBrush(Color.FromRgb(217, 119, 6)); // Amber
+                    TelegramStatusToolTip = LocalizationManager.T("telegram_tooltip_custom_pairing", lang);
                 }
                 else
                 {
                     TelegramStatusText = LocalizationManager.T("telegram_active", lang);
-                    TelegramStatusColor = new SolidColorBrush(Color.FromRgb(14, 165, 233)); // Sky Blue
+                    TelegramStatusColor = new SolidColorBrush(Color.FromRgb(22, 163, 74)); // Modern Green
+                    TelegramStatusToolTip = LocalizationManager.T("telegram_tooltip_custom_active", lang);
                 }
             }
             else
             {
                 TelegramStatusText = LocalizationManager.T("telegram_off", lang);
                 TelegramStatusColor = new SolidColorBrush(Color.FromRgb(148, 163, 184)); // Slate gray
+                TelegramStatusToolTip = LocalizationManager.T("telegram_tooltip_disabled", lang);
             }
         }
         catch
         {
             TelegramStatusText = LocalizationManager.T("telegram_off", lang);
             TelegramStatusColor = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+            TelegramStatusToolTip = LocalizationManager.T("telegram_tooltip_disabled", lang);
         }
     }
 

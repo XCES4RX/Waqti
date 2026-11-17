@@ -47,14 +47,18 @@
 
                 <!-- Right Side: Status Pills & Settings Button -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <!-- Telegram Status Pill -->
-                    <Border Style="{StaticResource StatusPill}" Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <md:PackIcon Kind="Send" Width="13" Height="13" Foreground="{Binding TelegramStatusColor}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock Text="{Binding TelegramStatusText}" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{Binding TelegramStatusColor}" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
+                    <!-- Telegram Status Pill (Clickable to open Settings & Telegram) -->
+                    <Button Command="{Binding OpenSettingsCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Height="32" Padding="0" Margin="0,0,8,0">
+                        <Border Style="{StaticResource StatusPill}" ToolTip="{Binding TelegramStatusToolTip}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <md:PackIcon Kind="Send" Width="13" Height="13" Foreground="{Binding TelegramStatusColor}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <TextBlock Text="{Binding TelegramStatusText}" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{Binding TelegramStatusColor}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Button>
 
                     <!-- Service Status Pill (Clickable to start if stopped) -->
                     <Button Command="{Binding StartServiceCommand}"

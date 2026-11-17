@@ -51,6 +51,13 @@ public static class LocalizationManager
         ["telegram_active"] = "تلغرام: متصل ونشط",
         ["telegram_pairing"] = "تلغرام: بانتظار الاقتران",
         ["telegram_off"] = "تلغرام: غير مفعّل",
+        ["telegram_cloud_active"] = "تلغرام: متصل (@Waqti_bot)",
+        ["telegram_cloud_pairing"] = "تلغرام: بانتظار الاقتران (@Waqti_bot)",
+        ["telegram_tooltip_cloud_active"] = "الجهاز مقترن بنجاح ببوت وقتي الرسمي (@Waqti_bot). اضغط لفتح الإعدادات.",
+        ["telegram_tooltip_cloud_pairing"] = "يعمل عبر بوت وقتي الرسمي (@Waqti_bot). بانتظار إدخال كود الاقتران في البوت. اضغط لفتح الإعدادات والربط.",
+        ["telegram_tooltip_custom_active"] = "متصل ببوت تلغرام المخصص الخاص بك. اضغط لفتح الإعدادات.",
+        ["telegram_tooltip_custom_pairing"] = "بوت تلغرام المخصص بانتظار الاقتران (أرسل /start). اضغط لفتح الإعدادات.",
+        ["telegram_tooltip_disabled"] = "التحكم عن بُعد عبر تلغرام غير مفعّل. اضغط لفتح الإعدادات والربط مع بوت وقتي.",
 
         // ═══ Dashboard ═══
         ["std_users"] = "حسابات المستخدمين القياسية",
@@ -228,6 +235,13 @@ public static class LocalizationManager
         ["telegram_active"] = "Telegram: Connected",
         ["telegram_pairing"] = "Telegram: Pairing",
         ["telegram_off"] = "Telegram: Disabled",
+        ["telegram_cloud_active"] = "Telegram: Connected (@Waqti_bot)",
+        ["telegram_cloud_pairing"] = "Telegram: Pairing (@Waqti_bot)",
+        ["telegram_tooltip_cloud_active"] = "Device is connected & paired with the official Waqti Bot (@Waqti_bot). Click to open settings.",
+        ["telegram_tooltip_cloud_pairing"] = "Operates via the official Waqti Bot (@Waqti_bot). Awaiting pairing code in bot. Click to open settings.",
+        ["telegram_tooltip_custom_active"] = "Connected to your custom Telegram bot. Click to open settings.",
+        ["telegram_tooltip_custom_pairing"] = "Custom Telegram bot awaiting pairing (send /start). Click to open settings.",
+        ["telegram_tooltip_disabled"] = "Telegram remote control is disabled. Click to open settings and link Waqti bot.",
 
         // ═══ Dashboard ═══
         ["std_users"] = "Standard Users",
@@ -405,6 +419,13 @@ public static class LocalizationManager
         ["telegram_active"] = "Telegram : Connecté",
         ["telegram_pairing"] = "Telegram : Association en cours",
         ["telegram_off"] = "Telegram : Désactivé",
+        ["telegram_cloud_active"] = "Telegram : Connecté (@Waqti_bot)",
+        ["telegram_cloud_pairing"] = "Telegram : En attente (@Waqti_bot)",
+        ["telegram_tooltip_cloud_active"] = "Appareil associé avec succès au bot officiel Waqti (@Waqti_bot). Cliquez pour ouvrir les paramètres.",
+        ["telegram_tooltip_cloud_pairing"] = "Fonctionne via le bot officiel Waqti (@Waqti_bot). En attente du code. Cliquez pour ouvrir les paramètres.",
+        ["telegram_tooltip_custom_active"] = "Connecté à votre bot Telegram personnalisé. Cliquez pour ouvrir les paramètres.",
+        ["telegram_tooltip_custom_pairing"] = "Bot Telegram personnalisé en attente d'association. Cliquez pour ouvrir les paramètres.",
+        ["telegram_tooltip_disabled"] = "Contrôle Telegram désactivé. Cliquez pour ouvrir les paramètres et associer le bot Waqti.",
 
         // ═══ Dashboard ═══
         ["std_users"] = "Utilisateurs standard",

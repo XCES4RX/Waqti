@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Waqti.Admin.Services;
@@ -77,6 +78,7 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private string _cloudStatusText = "⚪ بانتظار الاقتران";
+    private DispatcherTimer? _pollTimer;
 
     public SettingsViewModel(Action navigateBack)
     {
@@ -113,6 +115,32 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         LocalizedStrings.Instance.ApplyLanguage(AppLanguage);
+
+        _pollTimer?.Stop();
+        _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _pollTimer.Tick += (_, _) => CheckPairingStatus();
+        _pollTimer.Start();
+    }
+
+    private void CheckPairingStatus()
+    {
+        try
+        {
+            var s = SettingsRepository.Get();
+            if (s.IsCloudPaired != IsCloudPaired || (!string.IsNullOrWhiteSpace(s.PairingCode) && s.PairingCode != PairingCode))
+            {
+                IsCloudPaired = s.IsCloudPaired;
+                if (!string.IsNullOrWhiteSpace(s.PairingCode))
+                {
+                    PairingCode = s.PairingCode;
+                }
+                UpdateCloudStatus();
+            }
+        }
+        catch
+        {
+            // Ignore DB lock
+        }
     }
 
     partial void OnAppLanguageChanged(string value)
@@ -128,7 +156,11 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void GoBack() => _navigateBack();
+    private void GoBack()
+    {
+        _pollTimer?.Stop();
+        _navigateBack();
+    }
 
     [RelayCommand]
     private void Save()
