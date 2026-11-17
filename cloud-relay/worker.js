@@ -123,14 +123,16 @@ export default {
 // KV Helpers
 // -------------------------------------------------------------
 async function getKV(env, key) {
-  if (!env.PARENTAL_DB) return null;
-  const val = await env.PARENTAL_DB.get(key);
+  const kv = env.WAQTI_DB || env.PARENTAL_DB;
+  if (!kv) return null;
+  const val = await kv.get(key);
   return val ? JSON.parse(val) : null;
 }
 
 async function putKV(env, key, val) {
-  if (!env.PARENTAL_DB) return;
-  await env.PARENTAL_DB.put(key, JSON.stringify(val));
+  const kv = env.WAQTI_DB || env.PARENTAL_DB;
+  if (!kv) return;
+  await kv.put(key, JSON.stringify(val));
 }
 
 function jsonResponse(data, status = 200) {

@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{79AC8C90-4F26-4C16-A03E-46B9D27DBA2F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Waqti.Core", "src\Waqti.Core\Waqti.Core.csproj", "{19C104A4-A96A-4465-98EB-283813712B90}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Waqti.Admin", "src\Waqti.Admin\Waqti.Admin.csproj", "{02CECF48-E471-4C05-A3EA-4FC3941BC066}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Waqti.Overlay", "src\Waqti.Overlay\Waqti.Overlay.csproj", "{22CD6335-BE27-4728-AD8F-8D1C7227B5EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Waqti.Service", "src\Waqti.Service\Waqti.Service.csproj", "{688FF981-FDC9-456C-A0DA-8B830C1DBCDC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{19C104A4-A96A-4465-98EB-283813712B90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19C104A4-A96A-4465-98EB-283813712B90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19C104A4-A96A-4465-98EB-283813712B90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19C104A4-A96A-4465-98EB-283813712B90}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02CECF48-E471-4C05-A3EA-4FC3941BC066}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02CECF48-E471-4C05-A3EA-4FC3941BC066}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02CECF48-E471-4C05-A3EA-4FC3941BC066}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02CECF48-E471-4C05-A3EA-4FC3941BC066}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22CD6335-BE27-4728-AD8F-8D1C7227B5EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22CD6335-BE27-4728-AD8F-8D1C7227B5EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22CD6335-BE27-4728-AD8F-8D1C7227B5EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22CD6335-BE27-4728-AD8F-8D1C7227B5EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{688FF981-FDC9-456C-A0DA-8B830C1DBCDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{688FF981-FDC9-456C-A0DA-8B830C1DBCDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{688FF981-FDC9-456C-A0DA-8B830C1DBCDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{688FF981-FDC9-456C-A0DA-8B830C1DBCDC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{19C104A4-A96A-4465-98EB-283813712B90} = {79AC8C90-4F26-4C16-A03E-46B9D27DBA2F}
+		{02CECF48-E471-4C05-A3EA-4FC3941BC066} = {79AC8C90-4F26-4C16-A03E-46B9D27DBA2F}
+		{22CD6335-BE27-4728-AD8F-8D1C7227B5EE} = {79AC8C90-4F26-4C16-A03E-46B9D27DBA2F}
+		{688FF981-FDC9-456C-A0DA-8B830C1DBCDC} = {79AC8C90-4F26-4C16-A03E-46B9D27DBA2F}
+	EndGlobalSection
+EndGlobal

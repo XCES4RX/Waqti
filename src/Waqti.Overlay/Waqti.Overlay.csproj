@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="..\..\icon.ico" Link="icon.ico" />
+    <Resource Include="app-icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Waqti.Core\Waqti.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -10,7 +10,7 @@
   },
   "kv_namespaces": [
     {
-      "binding": "PARENTAL_DB",
+      "binding": "WAQTI_DB",
       "id": "16f11539cb8e433fa6a17de4ea59df6b"
     }
   ]

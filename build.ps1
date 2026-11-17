@@ -1,9 +1,9 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Publishes the ParentalControl projects and builds the Inno Setup installer.
+    Publishes the Waqti projects and builds the Inno Setup installer.
 .DESCRIPTION
-    1. Publishes ParentalControl.Admin, Overlay, and Service as self-contained win-x64 with shared runtime deduplication and stripped debug symbols.
+    1. Publishes Waqti.Admin, Overlay, and Service as self-contained win-x64 with shared runtime deduplication and stripped debug symbols.
     2. Invokes the Inno Setup compiler with ultra-high LZMA2 solid compression.
 #>
 param(
@@ -18,7 +18,7 @@ $repoRoot   = $PSScriptRoot
 $srcDir     = Join-Path $repoRoot "src"
 $publishDir = Join-Path $repoRoot "publish"
 $appPublish = Join-Path $publishDir "app"
-$issFile    = Join-Path $repoRoot "installer\ParentalControl.iss"
+$issFile    = Join-Path $repoRoot "installer\Waqti.iss"
 
 # Detect Inno Setup compiler
 if (-not $InnoSetupPath -or -not (Test-Path $InnoSetupPath)) {
@@ -59,18 +59,18 @@ $publishArgs = @(
 )
 
 # Publish Admin
-Write-Host "`n=== Publishing ParentalControl.Admin ===" -ForegroundColor Cyan
-dotnet publish "$srcDir\ParentalControl.Admin\ParentalControl.Admin.csproj" @publishArgs
+Write-Host "`n=== Publishing Waqti.Admin ===" -ForegroundColor Cyan
+dotnet publish "$srcDir\Waqti.Admin\Waqti.Admin.csproj" @publishArgs
 if ($LASTEXITCODE -ne 0) { Write-Error "Admin publish failed."; exit 1 }
 
 # Publish Overlay
-Write-Host "`n=== Publishing ParentalControl.Overlay ===" -ForegroundColor Cyan
-dotnet publish "$srcDir\ParentalControl.Overlay\ParentalControl.Overlay.csproj" @publishArgs
+Write-Host "`n=== Publishing Waqti.Overlay ===" -ForegroundColor Cyan
+dotnet publish "$srcDir\Waqti.Overlay\Waqti.Overlay.csproj" @publishArgs
 if ($LASTEXITCODE -ne 0) { Write-Error "Overlay publish failed."; exit 1 }
 
 # Publish Service
-Write-Host "`n=== Publishing ParentalControl.Service ===" -ForegroundColor Cyan
-dotnet publish "$srcDir\ParentalControl.Service\ParentalControl.Service.csproj" @publishArgs
+Write-Host "`n=== Publishing Waqti.Service ===" -ForegroundColor Cyan
+dotnet publish "$srcDir\Waqti.Service\Waqti.Service.csproj" @publishArgs
 if ($LASTEXITCODE -ne 0) { Write-Error "Service publish failed."; exit 1 }
 
 # Build Installer
