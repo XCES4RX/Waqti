@@ -128,7 +128,6 @@ public partial class CountdownWindow : Window
     {
         if (_isPaused)
         {
-            CountdownText.Text = "PAUSED";
             CountdownText.Foreground = BrushWarning;
             StatusDot.Fill = BrushWarning;
             return;
@@ -136,7 +135,7 @@ public partial class CountdownWindow : Window
 
         if (_remainingSeconds < 0)
         {
-            CountdownText.Text = "ACTIVE";
+            CountdownText.Text = "∞";
             CountdownText.Foreground = BrushNormal;
             StatusDot.Fill = BrushNormal;
             return;
@@ -155,6 +154,8 @@ public partial class CountdownWindow : Window
 
         CountdownText.Foreground = accent;
         StatusDot.Fill = accent;
+
+        if (!Topmost) Topmost = true;
     }
 
     private async Task SyncStatusAsync()
@@ -214,19 +215,36 @@ public partial class CountdownWindow : Window
             _remainingSeconds = status.EffectiveSecondsRemaining < 0 ? -1 : Math.Max(0, status.EffectiveSecondsRemaining);
             UsernameText.Text = string.IsNullOrWhiteSpace(status.Username) ? "PC" : status.Username;
 
+            var lang = "ar";
+            try
+            {
+                var cul = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+                if (cul == "fr" || cul == "en") lang = cul;
+            }
+            catch { }
+
             if (status.IsPaused)
             {
+                CountdownText.Text = lang == "en" ? "PAUSED" : lang == "fr" ? "PAUSE" : "مستقطع";
+                HeaderTitleText.Text = lang == "en" ? "Session Paused" : lang == "fr" ? "Session en pause" : "وقت مستقطع";
                 SubInfoText.Text = string.IsNullOrWhiteSpace(status.PauseUntil)
-                    ? "Break / Dinner active"
-                    : $"Break until {status.PauseUntil}";
+                    ? (lang == "en" ? "Break active" : lang == "fr" ? "Pause active" : "استراحة نشطة")
+                    : (lang == "en" ? $"Break until {status.PauseUntil}" : lang == "fr" ? $"Pause jusqu'à {status.PauseUntil}" : $"استراحة حتى {status.PauseUntil}");
             }
             else if (status.EffectiveSecondsRemaining < 0)
             {
-                SubInfoText.Text = "Protected • Click for details";
+                HeaderTitleText.Text = lang == "en" ? "Admin Session" : lang == "fr" ? "Compte Admin" : "حساب مسؤول";
+                CountdownText.Text = "∞";
+                SubInfoText.Text = lang == "en" ? "Unlimited time • Unrestricted" : lang == "fr" ? "Temps illimité" : "وقت مفتوح • بدون قيود";
             }
             else
             {
-                SubInfoText.Text = $"Until {status.ScheduleEnd} • {status.MinutesUsed}/{status.DailyMinutes}m";
+                HeaderTitleText.Text = lang == "en" ? "Time Remaining" : lang == "fr" ? "Temps restant" : "الوقت المتبقي";
+                SubInfoText.Text = lang == "en"
+                    ? $"Until {status.ScheduleEnd} • {status.MinutesUsed}/{status.DailyMinutes} min"
+                    : lang == "fr"
+                    ? $"Jusqu'à {status.ScheduleEnd} • {status.MinutesUsed}/{status.DailyMinutes} min"
+                    : $"حتى {status.ScheduleEnd} • {status.MinutesUsed}/{status.DailyMinutes} دقيقة";
             }
 
             UpdateCountdownDisplay();

@@ -245,4 +245,29 @@ public static class SessionManager
             NativeMethods.CloseHandle(userToken);
         }
     }
+
+    /// <summary>
+    /// Checks whether the user logged into the specified session is a Windows Administrator.
+    /// Standard users (children) return false.
+    /// </summary>
+    public static bool IsSessionAdmin(int sessionId)
+    {
+        if (!NativeMethods.WTSQueryUserToken(sessionId, out var userToken))
+            return false;
+
+        try
+        {
+            using var identity = new WindowsIdentity(userToken);
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            NativeMethods.CloseHandle(userToken);
+        }
+    }
 }

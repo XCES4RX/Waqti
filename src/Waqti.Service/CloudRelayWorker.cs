@@ -18,6 +18,7 @@ public sealed class CloudRelayWorker : BackgroundService
     private readonly CloudRelayClient _client;
     private readonly SessionTracker _sessionTracker;
     private readonly OverlayHostWorker _overlayHost;
+    private readonly AutoUpdateWorker _autoUpdateWorker;
     private readonly Serilog.ILogger _logger;
     private readonly DateTime _serviceStartedAt = DateTime.Now;
     private string _deviceId = string.Empty;
@@ -27,11 +28,13 @@ public sealed class CloudRelayWorker : BackgroundService
         CloudRelayClient client,
         SessionTracker sessionTracker,
         OverlayHostWorker overlayHost,
+        AutoUpdateWorker autoUpdateWorker,
         Serilog.ILogger logger)
     {
         _client = client;
         _sessionTracker = sessionTracker;
         _overlayHost = overlayHost;
+        _autoUpdateWorker = autoUpdateWorker;
         _logger = logger;
     }
 
@@ -401,6 +404,66 @@ public sealed class CloudRelayWorker : BackgroundService
                     }
 
                     await _client.SendEventAsync(relayUrl, _deviceId, "TOP_ACTIVITY", sb.ToString(), ct: ct);
+                    break;
+                }
+
+                case "set_schedule":
+                {
+                    var username = cmd.Args.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "";
+                    var startStr = cmd.Args.TryGetProperty("scheduleStart", out var s) ? s.GetString() ?? "" : "";
+                    var endStr = cmd.Args.TryGetProperty("scheduleEnd", out var e) ? e.GetString() ?? "" : "";
+
+                    if (TimeOnly.TryParse(startStr, out var start) && TimeOnly.TryParse(endStr, out var end))
+                    {
+                        var allUsers = UserRepository.GetAll();
+                        var targetUsers = string.IsNullOrWhiteSpace(username) || username.Equals("all", StringComparison.OrdinalIgnoreCase)
+                            ? allUsers.Where(x => x.IsRestricted).ToList()
+                            : allUsers.Where(x => x.Username.Equals(username, StringComparison.OrdinalIgnoreCase)).ToList();
+
+                        if (targetUsers.Count == 0)
+                        {
+                            targetUsers = allUsers.Where(x => x.IsRestricted).ToList();
+                            if (targetUsers.Count == 0 && allUsers.Count > 0)
+                            {
+                                targetUsers.Add(allUsers[0]);
+                            }
+                        }
+
+                        foreach (var targetUser in targetUsers)
+                        {
+                            var limit = LimitRepository.GetByUserId(targetUser.Id);
+                            var dailyMins = limit?.DailyMinutes ?? 120;
+                            LimitRepository.Upsert(new LimitConfig
+                            {
+                                UserId = targetUser.Id,
+                                DailyMinutes = dailyMins,
+                                ScheduleStart = start,
+                                ScheduleEnd = end
+                            });
+                            UserRepository.SetRestricted(targetUser.Id, true);
+                            EventRepository.LogEvent(targetUser.Sid, EventType.LIMIT_CHANGED, $"Schedule set: {start:HH:mm} - {end:HH:mm}");
+                            _logger.Information("Updated schedule for {Username}: {Start} - {End}", targetUser.Username, start, end);
+                        }
+
+                        actionName = $"تحديد مواعيد التشغيل ({startStr} إلى {endStr})";
+                    }
+                    break;
+                }
+
+                case "check_update":
+                {
+                    actionName = "فحص وتطبيق التحديثات";
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _autoUpdateWorker.CheckAndApplyUpdateAsync(manual: true, CancellationToken.None);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Warning(ex, "Failed to execute manual update check from Telegram");
+                        }
+                    });
                     break;
                 }
             }

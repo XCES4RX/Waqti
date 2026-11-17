@@ -11,5 +11,6 @@ public enum EventType
     LOGIN_DENIED,
     CLOCK_TAMPER,
     APP_BLOCKED,
-    TIME_REQUESTED
+    TIME_REQUESTED,
+    LIMIT_CHANGED
 }

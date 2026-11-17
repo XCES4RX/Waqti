@@ -361,8 +361,10 @@ public sealed class OverlayHostWorker : BackgroundService
         if (!_sessionTracker.ActiveSessions.TryGetValue(sessionId, out var session))
             return new OverlayStatus { ShouldShow = false, BroadcastMessage = pendingMsg };
 
+        var isAdmin = SessionManager.IsSessionAdmin(sessionId);
         var user = UserRepository.GetBySid(session.UserSid);
-        if (user is null || !user.IsRestricted)
+
+        if (isAdmin)
         {
             var isPausedUnrestricted = IsUserPaused(sessionId, out var pUntil);
             return new OverlayStatus
@@ -382,25 +384,28 @@ public sealed class OverlayHostWorker : BackgroundService
             };
         }
 
+        // Standard user / child account: guarantee restricted & active time limit
+        if (user is null)
+        {
+            user = UserRepository.Upsert(session.UserSid, session.Username, true);
+        }
+
         var limit = LimitRepository.GetByUserId(user.Id);
         if (limit is null)
         {
-            var isPausedNoLimit = IsUserPaused(sessionId, out var pUntilNoLimit);
-            return new OverlayStatus
+            limit = new LimitConfig
             {
-                ShouldShow = settings.ShowCountdownOverlay,
-                Username = session.Username,
-                IsRestricted = true,
-                DailyMinutes = 0,
-                MinutesUsed = 0,
-                ScheduleStart = "00:00",
-                ScheduleEnd = "23:59",
-                EffectiveSecondsRemaining = -1,
-                SessionMinutes = 1,
-                BroadcastMessage = pendingMsg,
-                IsPaused = isPausedNoLimit,
-                PauseUntil = isPausedNoLimit ? pUntilNoLimit.ToString("HH:mm") : null
+                UserId = user.Id,
+                DailyMinutes = 120,
+                ScheduleStart = new TimeOnly(8, 0),
+                ScheduleEnd = new TimeOnly(22, 0)
             };
+            LimitRepository.Upsert(limit);
+            UserRepository.SetRestricted(user.Id, true);
+        }
+        else if (!user.IsRestricted)
+        {
+            UserRepository.SetRestricted(user.Id, true);
         }
 
         var now = DateTime.Now;

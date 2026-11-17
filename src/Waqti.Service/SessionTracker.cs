@@ -30,10 +30,11 @@ public sealed class SessionTracker
         {
             if (sid is null) continue;
 
+            var isAdmin = SessionManager.IsSessionAdmin(sessionId);
             var user = UserRepository.GetBySid(sid);
             if (user is null)
             {
-                user = UserRepository.Upsert(sid, username, false);
+                user = UserRepository.Upsert(sid, username, !isAdmin);
             }
 
             _activeSessions.TryAdd(sessionId, new ActiveSession(sessionId, sid, username, DateTime.Now));
@@ -54,10 +55,11 @@ public sealed class SessionTracker
             return;
         }
 
+        var isAdmin = SessionManager.IsSessionAdmin(sessionId);
         var user = UserRepository.GetBySid(sid);
         if (user is null)
         {
-            user = UserRepository.Upsert(sid, username, false);
+            user = UserRepository.Upsert(sid, username, !isAdmin);
         }
 
         if (!user.IsRestricted)

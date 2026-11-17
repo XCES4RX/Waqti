@@ -40,7 +40,7 @@ public static class UserRepository
             VALUES (@sid, @username, @restricted)
             ON CONFLICT(sid) DO UPDATE SET
                 username = excluded.username,
-                is_restricted = excluded.is_restricted
+                is_restricted = CASE WHEN excluded.is_restricted = 1 THEN 1 ELSE users.is_restricted END
             RETURNING id, sid, username, is_restricted
             """;
         cmd.Parameters.AddWithValue("@sid", sid);

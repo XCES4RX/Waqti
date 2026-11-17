@@ -264,9 +264,22 @@ public partial class ChildDashboardWindow : Window
             var status = JsonSerializer.Deserialize<OverlayStatus>(json);
             if (status is null) return;
 
-            _remainingSeconds = Math.Max(0, status.EffectiveSecondsRemaining);
+            if (!status.IsRestricted || status.EffectiveSecondsRemaining < 0)
+            {
+                _remainingSeconds = -1;
+                TxtRemainingTime.Text = "∞";
+                TxtRemainingTime.Foreground = BrushNormal;
+            }
+            else
+            {
+                _remainingSeconds = Math.Max(0, status.EffectiveSecondsRemaining);
+                UpdateRemainingDisplay();
+            }
+
             TxtUserBadge.Text = string.IsNullOrWhiteSpace(status.Username) ? "PC" : status.Username;
-            TxtUsageRatio.Text = $"{status.MinutesUsed}m / {status.DailyMinutes}m";
+            TxtUsageRatio.Text = _currentLang == "ar"
+                ? $"{status.MinutesUsed} د / {status.DailyMinutes} د"
+                : $"{status.MinutesUsed}m / {status.DailyMinutes}m";
 
             var max = Math.Max(1, status.DailyMinutes);
             BarUsage.Maximum = max;

@@ -45,7 +45,19 @@ public partial class DashboardViewModel : ObservableObject
             {
                 if (isAdmin) continue;
                 var existing = UserRepository.GetBySid(sid);
-                UserRepository.Upsert(sid, username, existing?.IsRestricted ?? false);
+                var isRestricted = existing?.IsRestricted ?? true;
+                var dbUser = UserRepository.Upsert(sid, username, isRestricted);
+                var limit = LimitRepository.GetByUserId(dbUser.Id);
+                if (limit is null)
+                {
+                    LimitRepository.Upsert(new LimitConfig
+                    {
+                        UserId = dbUser.Id,
+                        DailyMinutes = 120,
+                        ScheduleStart = new TimeOnly(8, 0),
+                        ScheduleEnd = new TimeOnly(22, 0)
+                    });
+                }
             }
 
             // Remove users who have been promoted to admin from the DB

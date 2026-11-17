@@ -45,9 +45,10 @@
                            FontSize="9.5"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center" />
-                <TextBlock Text="TIME REMAINING"
+                <TextBlock x:Name="HeaderTitleText"
+                           Text="الوقت المتبقي"
                            Foreground="#CBD5E1"
-                           FontSize="9"
+                           FontSize="9.5"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center" />
             </DockPanel>

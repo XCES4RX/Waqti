@@ -327,12 +327,175 @@ async function sendTelegramPhoto(token, chatId, photoBytes, caption = "") {
   }
 }
 
+// -------------------------------------------------------------
+// Localization & Translations
+// -------------------------------------------------------------
+const I18N = {
+  ar: {
+    btn_status: "📊 حالة الجهاز",
+    btn_screenshot: "📸 لقطة شاشة",
+    btn_limits: "⏳ تعديل الوقت",
+    btn_schedule: "⏰ مواعيد التشغيل والانطفاء",
+    btn_dns: "🛡️ حماية DNS",
+    btn_pause: "⏸️ وقت مستقطع",
+    btn_msg: "💬 إرسال رسالة",
+    btn_top: "📈 الأكثر استخداماً",
+    btn_devices: (n) => `📱 إدارة الأجهزة (${n})`,
+    btn_language: "🌐 تغيير اللغة (Language)",
+    btn_update: "🔄 فحص التحديثات",
+    btn_home: "🏠 القائمة الرئيسية",
+    btn_lock: "🔒 قفل فوري",
+    online: "🟢 متصل وشغّال الآن",
+    offline: "🔴 غير متصل حالياً (مطفأ أو مفصول)",
+    win_uptime: "⏱️ مدة تشغيل الويندوز:",
+    service_uptime: "🛡️ خدمة وقتي (Waqti):",
+    last_seen: "⏱️ آخر اتصال مسجل:",
+    no_sessions: "💤 لا توجد جلسات مستخدمين نشطة حالياً.",
+    user_sessions: "👤 جلسات المستخدمين:",
+    used_today: "المستهلك اليوم:",
+    remaining_today: "رصيد اليوم المتبقي:",
+    curfew_format: (end, rem) => `   🌙 <b>المتبقي للجلسة حتى موعد الإغلاق (${end}):</b> <b>${rem} د</b>\n`,
+    offline_notice: "💡 <i>الجهاز غير متصل حالياً، لكن يمكنك إرسال أي أوامر وسيقوم برنامج وقتي بتنفيذها فور تشغيل الجهاز.</i>",
+    welcome_unpaired: "👋 <b>مرحباً بك في بوت وقتي (Waqti)!</b>\n\nلم يتم ربط أي جهاز بحسابك بعد.\n\n🔗 <b>لربط جهاز الكمبيوتر:</b>\n1. افتح تطبيق <b>وقتي (Waqti)</b> على الكمبيوتر.\n2. اذهب إلى تفاصيل حساب الطفل أو الإعدادات.\n3. أرسل كود الاقتران المكون من 10 أرقام هنا.",
+    pair_success_user: (name, dev, code) => `✅ <b>تم ربط حساب الطفل بنجاح!</b>\n👤 المستخدم: <b>${name}</b>\n💻 الجهاز: <b>${dev}</b>\n🔢 كود الاقتران: <code>${code}</code>\n\nيمكنك الآن التحكم بوقته ومواعيد تشغيله وتلقي طلباته مباشرة!`,
+    pair_success_dev: (dev, count) => `✅ <b>تم ربط الجهاز بنجاح!</b>\n💻 الجهاز: <b>${dev}</b>\n📱 إجمالي أجهزتك المسجلة: ${count}`,
+    pair_invalid: "❌ كود الاقتران غير صحيح أو منتهي الصلاحية.",
+    main_title: (dev) => `🛡️ <b>لوحة تحكم وقتي (Waqti) — ${dev}</b>`,
+    taking_shot: (dev) => `📸 <b>جاري التقاط ونقل لقطة الشاشة من جهاز (${dev})...</b>`,
+    shot_offline: "⚠️ الجهاز غير متصل حالياً لالتقاط الشاشة.",
+    msg_sent: (text) => `✅ تم إرسال الرسالة إلى شاشة الطفل:\n<i>"${text}"</i>`,
+    msg_prompt: "✍️ <b>أرسل الآن نص الرسالة التي تريد أن تظهر على شاشة الطفل:</b>",
+    pause_active: "⚡ تم إيقاف الجلسة مؤقتاً (استراحة 30 دقيقة).",
+    pause_queued: "⏳ تم حفظ الأمر: سيتم إيقاف الجلسة فور تشغيل الجهاز.",
+    resume_done: "▶️ تم استئناف الجلسة بنجاح.",
+    top_prompt: (dev) => `📊 <b>جاري جلب تقرير البرامج والمواقع الأكثر استخداماً من جهاز (${dev})...</b>`,
+    dns_toggled: "🛡️ تم إرسال أمر تبديل حماية Family DNS المانع للمواقع الإباحية والضارة.",
+    time_adjusted: (u, d) => `⚡ تم تعديل الوقت لـ ${u} (${d > 0 ? '+' : ''}${d} دقيقة).`,
+    time_queued: (u) => `⏳ تم حفظ الأمر: سيتم تعديل وقت ${u} فور تشغيل الجهاز.`,
+    lock_sent: "⚡ تم قفل الشاشة.",
+    lock_queued: "⏳ سيتم قفل الشاشة فور تشغيل الجهاز.",
+    sched_title: (dev) => `⏰ <b>مواعيد التشغيل والانطفاء (جدول الحظر اليومي) — ${dev}</b>\n\nاختر من الجداول الجاهزة أدناه، أو اضغط تحديد يدوي لإدخال مواعيد مخصصة:`,
+    sched_saved: (name, start, end) => `✅ <b>تم ضبط مواعيد التشغيل والانطفاء بنجاح!</b>\n👤 المستخدم: <b>${name}</b>\n🌅 يبدأ السماح بالتشغيل: <b>${start}</b>\n🌙 موعد الانطفاء والقفل: <b>${end}</b>`,
+    sched_manual_prompt: "⏰ <b>أرسل وقت البداية ووقت الانطفاء بصيغة 24 ساعة (HH:mm HH:mm):</b>\nمثال: <code>08:00 21:30</code> (من الثامنة صباحاً حتى التاسعة والنصف ليلاً)",
+    sched_manual_invalid: "❌ صيغة الوقت غير صحيحة. يرجى إرسال وقت البداية والنهاية مثل: <code>08:00 22:00</code>",
+    lang_select_title: "🌐 <b>اختر لغة البوت المفضلة / Select Bot Language:</b>",
+    lang_switched: "✅ تم ضبط لغة البوت إلى <b>العربية 🇸🇦</b> بنجاح!",
+    update_sent: "🔄 <b>تم إرسال أمر فحص وتطبيق التحديثات الصامتة للكمبيوتر!</b>"
+  },
+  en: {
+    btn_status: "📊 Device Status",
+    btn_screenshot: "📸 Screenshot",
+    btn_limits: "⏳ Adjust Screen Time",
+    btn_schedule: "⏰ Schedule & Curfew",
+    btn_dns: "🛡️ Family DNS",
+    btn_pause: "⏸️ Pause Session",
+    btn_msg: "💬 Send Screen Message",
+    btn_top: "📈 Top Activity",
+    btn_devices: (n) => `📱 Devices (${n})`,
+    btn_language: "🌐 Language (اللغة)",
+    btn_update: "🔄 Check Updates",
+    btn_home: "🏠 Main Menu",
+    btn_lock: "🔒 Lock Now",
+    online: "🟢 Online & Active",
+    offline: "🔴 Offline (Powered off or disconnected)",
+    win_uptime: "⏱️ Windows Uptime:",
+    service_uptime: "🛡️ Waqti Service:",
+    last_seen: "⏱️ Last Seen:",
+    no_sessions: "💤 No active user sessions right now.",
+    user_sessions: "👤 User Sessions:",
+    used_today: "Used Today:",
+    remaining_today: "Daily Quota Left:",
+    curfew_format: (end, rem) => `   🌙 <b>Remaining until curfew (${end}):</b> <b>${rem} min</b>\n`,
+    offline_notice: "💡 <i>Device is currently offline. Commands will execute as soon as it reconnects.</i>",
+    welcome_unpaired: "👋 <b>Welcome to Waqti Bot!</b>\n\nNo device is paired with your account yet.\n\n🔗 <b>To pair your Windows PC:</b>\n1. Open <b>Waqti</b> app on PC.\n2. Go to child user details or Settings.\n3. Send the 10-digit pairing code here.",
+    pair_success_user: (name, dev, code) => `✅ <b>Child account paired successfully!</b>\n👤 User: <b>${name}</b>\n💻 Device: <b>${dev}</b>\n🔢 Code: <code>${code}</code>\n\nYou can now manage time limits, curfew schedule, and receive requests directly!`,
+    pair_success_dev: (dev, count) => `✅ <b>Device paired successfully!</b>\n💻 Device: <b>${dev}</b>\n📱 Total paired devices: ${count}`,
+    pair_invalid: "❌ Pairing code is invalid or expired.",
+    main_title: (dev) => `🛡️ <b>Waqti Control Panel — ${dev}</b>`,
+    taking_shot: (dev) => `📸 <b>Capturing live screenshot from (${dev})...</b>`,
+    shot_offline: "⚠️ Device is currently offline.",
+    msg_sent: (text) => `✅ Message delivered to child's screen:\n<i>"${text}"</i>`,
+    msg_prompt: "✍️ <b>Type the message to display on the child's screen:</b>",
+    pause_active: "⚡ Session paused (30-minute break active).",
+    pause_queued: "⏳ Command queued: session will pause when PC turns on.",
+    resume_done: "▶️ Session resumed successfully.",
+    top_prompt: (dev) => `📊 <b>Fetching activity report from (${dev})...</b>`,
+    dns_toggled: "🛡️ Family DNS protection toggle command sent.",
+    time_adjusted: (u, d) => `⚡ Screen time adjusted for ${u} (${d > 0 ? '+' : ''}${d} min).`,
+    time_queued: (u) => `⏳ Command queued: will update ${u} when PC turns on.`,
+    lock_sent: "⚡ Screen locked.",
+    lock_queued: "⏳ Screen will lock as soon as PC turns on.",
+    sched_title: (dev) => `⏰ <b>Allowed Schedule & Bedtime Curfew — ${dev}</b>\n\nChoose a preset below, or tap Custom to set specific start and shutdown times:`,
+    sched_saved: (name, start, end) => `✅ <b>Schedule updated successfully!</b>\n👤 User: <b>${name}</b>\n🌅 Allowed Start: <b>${start}</b>\n🌙 Bedtime Curfew: <b>${end}</b>`,
+    sched_manual_prompt: "⏰ <b>Send start and shutdown curfew in 24h format (HH:mm HH:mm):</b>\nExample: <code>08:00 21:30</code>",
+    sched_manual_invalid: "❌ Invalid format. Please send times like: <code>08:00 22:00</code>",
+    lang_select_title: "🌐 <b>Select Bot Language:</b>",
+    lang_switched: "✅ Bot language changed to <b>English 🇬🇧</b>!",
+    update_sent: "🔄 <b>Silent auto-update check dispatched to PC!</b>"
+  },
+  fr: {
+    btn_status: "📊 État de l'appareil",
+    btn_screenshot: "📸 Capture d'écran",
+    btn_limits: "⏳ Ajuster le temps",
+    btn_schedule: "⏰ Horaires & Extinction",
+    btn_dns: "🛡️ Filtre DNS",
+    btn_pause: "⏸️ Mettre en pause",
+    btn_msg: "💬 Envoyer un message",
+    btn_top: "📈 Activité",
+    btn_devices: (n) => `📱 Appareils (${n})`,
+    btn_language: "🌐 Langue (Language)",
+    btn_update: "🔄 Mises à jour",
+    btn_home: "🏠 Menu principal",
+    btn_lock: "🔒 Verrouiller",
+    online: "🟢 En ligne & Actif",
+    offline: "🔴 Hors ligne (Éteint ou déconnecté)",
+    win_uptime: "⏱️ Uptime Windows :",
+    service_uptime: "🛡️ Service Waqti :",
+    last_seen: "⏱️ Dernière connexion :",
+    no_sessions: "💤 Aucune session active actuellement.",
+    user_sessions: "👤 Sessions utilisateurs :",
+    used_today: "Utilisé aujourd'hui :",
+    remaining_today: "Temps restant :",
+    curfew_format: (end, rem) => `   🌙 <b>Temps restant avant extinction (${end}) :</b> <b>${rem} min</b>\n`,
+    offline_notice: "💡 <i>L'appareil est hors ligne. Les commandes s'exécuteront dès sa reconnexion.</i>",
+    welcome_unpaired: "👋 <b>Bienvenue sur le bot Waqti !</b>\n\nAucun appareil associé.\n\n🔗 <b>Pour associer votre PC :</b>\n1. Ouvrez l'application <b>Waqti</b> sur le PC.\n2. Allez dans les détails du compte enfant ou les Paramètres.\n3. Envoyez le code d'association à 10 chiffres ici.",
+    pair_success_user: (name, dev, code) => `✅ <b>Compte enfant associé avec succès !</b>\n👤 Utilisateur : <b>${name}</b>\n💻 Appareil : <b>${dev}</b>\n🔢 Code : <code>${code}</code>\n\nVous pouvez désormais gérer le temps d'écran et les horaires d'extinction !`,
+    pair_success_dev: (dev, count) => `✅ <b>Appareil associé avec succès !</b>\n💻 Appareil : <b>${dev}</b>\n📱 Total : ${count}`,
+    pair_invalid: "❌ Code d'association invalide ou expiré.",
+    main_title: (dev) => `🛡️ <b>Panneau de contrôle Waqti — ${dev}</b>`,
+    taking_shot: (dev) => `📸 <b>Capture d'écran en direct (${dev})...</b>`,
+    shot_offline: "⚠️ L'appareil est actuellement hors ligne.",
+    msg_sent: (text) => `✅ Message envoyé sur l'écran :\n<i>"${text}"</i>`,
+    msg_prompt: "✍️ <b>Tapez le message à afficher sur l'écran :</b>",
+    pause_active: "⚡ Session mise en pause (30 min).",
+    pause_queued: "⏳ Commande en attente de reconnexion.",
+    resume_done: "▶️ Session reprise.",
+    top_prompt: (dev) => `📊 <b>Récupération du rapport (${dev})...</b>`,
+    dns_toggled: "🛡️ Commande filtre DNS Famille envoyée.",
+    time_adjusted: (u, d) => `⚡ Temps ajusté pour ${u} (${d > 0 ? '+' : ''}${d} min).`,
+    time_queued: (u) => `⏳ Commande en attente pour ${u}.`,
+    lock_sent: "⚡ Écran verrouillé.",
+    lock_queued: "⏳ Verrouillage en attente.",
+    sched_title: (dev) => `⏰ <b>Horaires autorisés & Couvre-feu — ${dev}</b>\n\nChoisissez une plage horaire ou définissez des heures personnalisées :`,
+    sched_saved: (name, start, end) => `✅ <b>Horaires enregistrés avec succès !</b>\n👤 Utilisateur : <b>${name}</b>\n🌅 Début : <b>${start}</b>\n🌙 Extinction : <b>${end}</b>`,
+    sched_manual_prompt: "⏰ <b>Envoyez l'heure de début et d'extinction (HH:mm HH:mm) :</b>\nExemple : <code>08:00 21:30</code>",
+    sched_manual_invalid: "❌ Format invalide. Exemple : <code>08:00 22:00</code>",
+    lang_select_title: "🌐 <b>Choisissez la langue du bot :</b>",
+    lang_switched: "✅ Langue du bot changée en <b>Français 🇫🇷</b> !",
+    update_sent: "🔄 <b>Vérification silencieuse des mises à jour envoyée au PC !</b>"
+  }
+};
+
+function getT(lang) {
+  return I18N[lang] || I18N.ar;
+}
+
 function formatMinutes(min) {
   const h = Math.floor(min / 60);
   const m = min % 60;
-  if (h === 0) return `${m}د`;
-  if (m === 0) return `${h}س`;
-  return `${h}س ${m}د`;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 function isOnline(dev) {
@@ -342,66 +505,121 @@ function isOnline(dev) {
 }
 
 function buildMainKeyboard(user, dev) {
+  const lang = user.lang || "ar";
+  const t = getT(lang);
   const count = user.pairedDeviceIds ? user.pairedDeviceIds.length : 1;
   return {
     inline_keyboard: [
       [
-        { text: "📊 حالة الجهاز", callback_data: "cmd:status" },
-        { text: "📸 لقطة شاشة", callback_data: "cmd:screenshot" }
+        { text: t.btn_status, callback_data: "cmd:status" },
+        { text: t.btn_screenshot, callback_data: "cmd:screenshot" }
       ],
       [
-        { text: "⏳ الوقت والحدود", callback_data: "cmd:limits" },
-        { text: "🛡️ حماية DNS", callback_data: "cmd:dns" }
+        { text: t.btn_limits, callback_data: "cmd:limits" },
+        { text: t.btn_schedule, callback_data: "cmd:schedule" }
       ],
       [
-        { text: "⏸️ وقت مستقطع", callback_data: "cmd:pause" },
-        { text: "💬 إرسال رسالة", callback_data: "cmd:msg" }
+        { text: t.btn_pause, callback_data: "cmd:pause" },
+        { text: t.btn_msg, callback_data: "cmd:msg" }
       ],
       [
-        { text: "📊 الأكثر استخداماً", callback_data: "cmd:top" },
-        { text: `📱 إدارة الأجهزة (${count})`, callback_data: "cmd:devices" }
+        { text: t.btn_top, callback_data: "cmd:top" },
+        { text: t.btn_dns, callback_data: "cmd:dns" }
       ],
       [
-        { text: "🔄 تحديث", callback_data: "cmd:status" }
+        { text: t.btn_devices(count), callback_data: "cmd:devices" },
+        { text: t.btn_language, callback_data: "cmd:language" }
+      ],
+      [
+        { text: t.btn_update, callback_data: "cmd:update" },
+        { text: "🔄", callback_data: "cmd:status" }
       ]
     ]
   };
 }
 
-function buildStatusMessage(dev) {
+function buildScheduleKeyboard(user, dev) {
+  const lang = user.lang || "ar";
+  const t = getT(lang);
+  const users = (dev.status && dev.status.users) || [];
+  const targetUser = user.activeChild?.username || (users.length > 0 ? users[0].username : "child");
+  return {
+    inline_keyboard: [
+      [
+        { text: "🌅 08:00 ➡️ 20:00 (8:00 - 20:00)", callback_data: `sched:set:${targetUser}:08:00:20:00` },
+        { text: "🌅 08:00 ➡️ 21:00 (8:00 - 21:00)", callback_data: `sched:set:${targetUser}:08:00:21:00` }
+      ],
+      [
+        { text: "🌅 08:00 ➡️ 22:00 (8:00 - 22:00)", callback_data: `sched:set:${targetUser}:08:00:22:00` },
+        { text: "🌅 09:00 ➡️ 21:00 (9:00 - 21:00)", callback_data: `sched:set:${targetUser}:09:00:21:00` }
+      ],
+      [
+        { text: "🌅 14:00 ➡️ 21:00 (14:00 - 21:00)", callback_data: `sched:set:${targetUser}:14:00:21:00` },
+        { text: "🌅 15:00 ➡️ 22:00 (15:00 - 22:00)", callback_data: `sched:set:${targetUser}:15:00:22:00` }
+      ],
+      [
+        { text: "✏️ تحديد يدوي (Custom)", callback_data: `sched:manual:${targetUser}` }
+      ],
+      [
+        { text: t.btn_home, callback_data: "cmd:menu" }
+      ]
+    ]
+  };
+}
+
+function buildLanguageKeyboard(user) {
+  const t = getT(user.lang || "ar");
+  return {
+    inline_keyboard: [
+      [
+        { text: "🇸🇦 العربية (Arabic)", callback_data: "lang:set:ar" },
+        { text: "🇬🇧 English", callback_data: "lang:set:en" }
+      ],
+      [
+        { text: "🇫🇷 Français", callback_data: "lang:set:fr" }
+      ],
+      [
+        { text: t.btn_home, callback_data: "cmd:menu" }
+      ]
+    ]
+  };
+}
+
+function buildStatusMessage(dev, lang = "ar") {
+  const t = getT(lang);
   const online = isOnline(dev);
-  const statusStr = online ? "🟢 متصل وشغّال الآن" : "🔴 غير متصل حالياً (مطفأ أو مفصول)";
-  const lastSeenStr = dev.lastSeen ? new Date(dev.lastSeen).toLocaleTimeString() : "غير محدد";
+  const statusStr = online ? t.online : t.offline;
+  const lastSeenStr = dev.lastSeen ? new Date(dev.lastSeen).toLocaleTimeString() : "N/A";
 
   let msg = `🖥️ <b>${dev.deviceName || 'PC'}</b> — <b>${statusStr}</b>\n`;
   if (online) {
-    msg += `⏱️ مدة تشغيل الويندوز: <code>${dev.status?.windowsUptime || 'N/A'}</code>\n`;
-    msg += `🛡️ خدمة وقتي (Waqti): <code>${dev.status?.serviceUptime || 'N/A'}</code>\n\n`;
+    msg += `${t.win_uptime} <code>${dev.status?.windowsUptime || 'N/A'}</code>\n`;
+    msg += `${t.service_uptime} <code>${dev.status?.serviceUptime || 'N/A'}</code>\n\n`;
   } else {
-    msg += `⏱️ آخر اتصال مسجل: <code>${lastSeenStr}</code>\n\n`;
+    msg += `${t.last_seen} <code>${lastSeenStr}</code>\n\n`;
   }
 
   const users = (dev.status && dev.status.users) || [];
   if (users.length === 0) {
-    msg += `💤 <i>لا توجد جلسات مستخدمين نشطة حالياً.</i>\n`;
+    msg += `${t.no_sessions}\n`;
   } else {
-    msg += `👤 <b>جلسات المستخدمين:</b>\n`;
+    msg += `${t.user_sessions}\n`;
     for (const u of users) {
-      msg += `\n• <b>${u.username}</b> ${u.isRestricted ? '🔒 (مقيد)' : '🔓 (غير مقيد)'}\n`;
-      msg += `   📊 المستهلك اليوم: <b>${u.usedToday}/${u.dailyLimit || '∞'} د</b>\n`;
+      msg += `\n• <b>${u.username}</b> ${u.isRestricted ? '🔒' : '🔓'}\n`;
+      msg += `   📊 ${t.used_today} <b>${u.usedToday}/${u.dailyLimit || '∞'} min</b>\n`;
       if (u.isRestricted && u.dailyLimit) {
         const dailyRemaining = Math.max(0, u.dailyLimit - u.usedToday);
-        msg += `   ⏳ <b>رصيد اليوم المتبقي:</b> <b>${dailyRemaining} د</b> (${formatMinutes(dailyRemaining)})\n`;
+        msg += `   ⏳ ${t.remaining_today} <b>${dailyRemaining} min</b> (${formatMinutes(dailyRemaining)})\n`;
         if (u.scheduleEnd) {
           const schedRem = u.remainingSchedule !== undefined ? u.remainingSchedule : dailyRemaining;
-          msg += `   🌙 <b>المتبقي للجلسة حتى موعد الإغلاق (${u.scheduleEnd}):</b> <b>${schedRem} د</b> (${formatMinutes(schedRem)})\n`;
+          msg += t.curfew_format(u.scheduleEnd, schedRem);
         }
       }
     }
   }
 
   if (!online) {
-    msg += `\n💡 <i>الجهاز غير متصل حالياً، لكن يمكنك إرسال أي أوامر وسيقوم برنامج وقتي بتنفيذها فور تشغيل الجهاز وتوصيله بالإنترنت.</i>`;
+    msg += `\n${t.offline_notice}`;
   }
 
   return msg;
@@ -437,6 +655,8 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       pendingInput: null
     };
 
+    const t = getT(user.lang || "ar");
+
     // Pending text inputs
     if (user.pendingInput) {
       const p = user.pendingInput;
@@ -445,8 +665,28 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
 
       if (p.type === "msg_to_screen" && user.activeDeviceId) {
         await enqueueCommand(env, user.activeDeviceId, "send_msg", { message: text });
-        await sendTelegram(botToken, chatId, `✅ تم إرسال الرسالة إلى شاشة الطفل:\n<i>"${text}"</i>`);
+        await sendTelegram(botToken, chatId, t.msg_sent(text));
         return;
+      }
+
+      if (p.type === "set_schedule_manual" && user.activeDeviceId) {
+        const parts = text.split(/[\s\-–—➡️to]+/i).filter(Boolean);
+        if (parts.length >= 2) {
+          const start = parts[0].trim();
+          const end = parts[1].trim();
+          const targetChild = p.username || (user.activeChild?.username || "all");
+          await enqueueCommand(env, user.activeDeviceId, "set_schedule", {
+            username: targetChild,
+            scheduleStart: start,
+            scheduleEnd: end
+          });
+          const dev = await getKV(env, `dev:${user.activeDeviceId}`);
+          await sendTelegram(botToken, chatId, t.sched_saved(targetChild, start, end), buildMainKeyboard(user, dev));
+          return;
+        } else {
+          await sendTelegram(botToken, chatId, t.sched_manual_invalid);
+          return;
+        }
       }
 
       if (p.type === "pair_new_device") {
@@ -473,18 +713,18 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
                 await putKV(env, `dev:${dId}`, dev);
                 await putKV(env, `usr:${chatId}`, user);
 
-                await sendTelegram(botToken, chatId, `✅ <b>تم ربط حساب الطفل بنجاح!</b>\n👤 المستخدم: <b>${pinTarget.username}</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n🔢 كود الاقتران: <code>${code}</code>\n\nيمكنك الآن إدارة وقته، إيقاف/استئناف الجلسة، وتلقي طلباته مباشرة!`, buildMainKeyboard(user, dev));
+                await sendTelegram(botToken, chatId, t.pair_success_user(pinTarget.username, dev.deviceName, code), buildMainKeyboard(user, dev));
                 return;
               } else {
                 await putKV(env, `dev:${dId}`, dev);
                 await putKV(env, `usr:${chatId}`, user);
-                await sendTelegram(botToken, chatId, `✅ <b>تم ربط الجهاز بنجاح!</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n📱 إجمالي أجهزتك المسجلة: ${user.pairedDeviceIds.length}`, buildMainKeyboard(user, dev));
+                await sendTelegram(botToken, chatId, t.pair_success_dev(dev.deviceName, user.pairedDeviceIds.length), buildMainKeyboard(user, dev));
                 return;
               }
             }
           }
         }
-        await sendTelegram(botToken, chatId, `❌ كود الاقتران غير صحيح أو منتهي الصلاحية.`);
+        await sendTelegram(botToken, chatId, t.pair_invalid);
         return;
       }
     }
@@ -523,13 +763,13 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
             await putKV(env, `dev:${dId}`, dev);
             await putKV(env, `usr:${chatId}`, user);
 
-            await sendTelegram(botToken, chatId, `✅ <b>تم ربط حساب الطفل بنجاح!</b>\n👤 المستخدم: <b>${pinTarget.username}</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n🔢 كود الاقتران: <code>${pairCode}</code>\n\nيمكنك الآن إدارة وقته، إيقاف/استئناف الجلسة، وتلقي طلباته مباشرة!`, buildMainKeyboard(user, dev));
+            await sendTelegram(botToken, chatId, t.pair_success_user(pinTarget.username, dev.deviceName, pairCode), buildMainKeyboard(user, dev));
             return;
           } else {
             await putKV(env, `dev:${dId}`, dev);
             await putKV(env, `usr:${chatId}`, user);
 
-            await sendTelegram(botToken, chatId, `✅ <b>تم ربط الجهاز بنجاح!</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n🆔 المعرّف: <code>${dev.deviceId}</code>\n📱 إجمالي أجهزتك المسجلة: ${user.pairedDeviceIds.length}`, buildMainKeyboard(user, dev));
+            await sendTelegram(botToken, chatId, t.pair_success_dev(dev.deviceName, user.pairedDeviceIds.length), buildMainKeyboard(user, dev));
             return;
           }
         }
@@ -538,12 +778,43 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
 
     // Unpaired user
     if (!user.activeDeviceId) {
-      await sendTelegram(botToken, chatId, `👋 <b>مرحباً بك في بوت وقتي (Waqti)!</b>\n\nلم يتم ربط أي جهاز بحسابك بعد.\n\n🔗 <b>لربط جهاز الكمبيوتر:</b>\n1. افتح تطبيق <b>وقتي (Waqti)</b> على الكمبيوتر.\n2. اذهب إلى قسم <b>الإعدادات</b>.\n3. أرسل كود الاقتران المكون من 6 أرقام هنا.`);
+      await sendTelegram(botToken, chatId, t.welcome_unpaired);
       return;
     }
 
     const currentDev = await getKV(env, `dev:${user.activeDeviceId}`);
     if (!currentDev) return;
+
+    // Commands
+    if (text === "/lang" || text === "/language" || text.includes("اللغة") || text.includes("Language")) {
+      await sendTelegram(botToken, chatId, t.lang_select_title, buildLanguageKeyboard(user));
+      return;
+    }
+
+    if (text.startsWith("/schedule") || text.startsWith("/curfew") || text.includes("مواعيد") || text.includes("انطفاء") || text.includes("تشغيل")) {
+      const parts = text.split(/\s+/).slice(1);
+      if (parts.length >= 2) {
+        const start = parts[0].trim();
+        const end = parts[1].trim();
+        const targetChild = user.activeChild?.username || "all";
+        await enqueueCommand(env, currentDev.deviceId, "set_schedule", {
+          username: targetChild,
+          scheduleStart: start,
+          scheduleEnd: end
+        });
+        await sendTelegram(botToken, chatId, t.sched_saved(targetChild, start, end), buildMainKeyboard(user, currentDev));
+        return;
+      } else {
+        await sendTelegram(botToken, chatId, t.sched_title(currentDev.deviceName), buildScheduleKeyboard(user, currentDev));
+        return;
+      }
+    }
+
+    if (text === "/update" || text.includes("تحديث")) {
+      await enqueueCommand(env, currentDev.deviceId, "check_update");
+      await sendTelegram(botToken, chatId, t.update_sent);
+      return;
+    }
 
     if (text === "/devices" || text.includes("إدارة الأجهزة")) {
       await showDevicesMenu(env, botToken, chatId, user);
@@ -551,53 +822,53 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
     }
 
     if (text === "/status" || text.includes("حالة")) {
-      await sendTelegram(botToken, chatId, buildStatusMessage(currentDev), buildMainKeyboard(user, currentDev));
+      await sendTelegram(botToken, chatId, buildStatusMessage(currentDev, user.lang), buildMainKeyboard(user, currentDev));
       return;
     }
 
     if (text === "/screenshot" || text.includes("لقطة") || text.includes("شاشة")) {
       if (!isOnline(currentDev)) {
-        await sendTelegram(botToken, chatId, "⚠️ الجهاز غير متصل حالياً لالتقاط الشاشة.");
+        await sendTelegram(botToken, chatId, t.shot_offline);
         return;
       }
       await enqueueCommand(env, currentDev.deviceId, "take_screenshot", { chatId });
-      await sendTelegram(botToken, chatId, `📸 <b>جاري التقاط ونقل لقطة الشاشة من جهاز (${currentDev.deviceName || 'PC'})...</b>`);
+      await sendTelegram(botToken, chatId, t.taking_shot(currentDev.deviceName || 'PC'));
       return;
     }
 
     if (text.startsWith("/msg ")) {
       const msgText = text.substring(5).trim();
       await enqueueCommand(env, currentDev.deviceId, "send_msg", { message: msgText });
-      await sendTelegram(botToken, chatId, `✅ تم إرسال الرسالة للشاشة:\n<i>"${msgText}"</i>`);
+      await sendTelegram(botToken, chatId, t.msg_sent(msgText));
       return;
     }
 
     if (text.startsWith("/pause")) {
       await enqueueCommand(env, currentDev.deviceId, "pause", { minutes: 30 });
-      await sendTelegram(botToken, chatId, `⏸️ تم تفعيل وضع الاستراحة (30 دقيقة).`);
+      await sendTelegram(botToken, chatId, isOnline(currentDev) ? t.pause_active : t.pause_queued);
       return;
     }
 
     if (text.startsWith("/resume")) {
       await enqueueCommand(env, currentDev.deviceId, "resume");
-      await sendTelegram(botToken, chatId, `▶️ تم استئناف الجلسة.`);
+      await sendTelegram(botToken, chatId, t.resume_done);
       return;
     }
 
     if (text.startsWith("/top") || text.includes("الأكثر استخداما")) {
       await enqueueCommand(env, currentDev.deviceId, "get_top");
-      await sendTelegram(botToken, chatId, `📊 <b>جاري جلب تقرير البرامج والمواقع الأكثر استخداماً من جهاز (${currentDev.deviceName || 'PC'})...</b>`);
+      await sendTelegram(botToken, chatId, t.top_prompt(currentDev.deviceName || 'PC'));
       return;
     }
 
     if (text === "/dns") {
       await enqueueCommand(env, currentDev.deviceId, "toggle_dns");
-      await sendTelegram(botToken, chatId, "🛡️ تم إرسال أمر تبديل حماية Family DNS المانع للمواقع الإباحية والضارة.");
+      await sendTelegram(botToken, chatId, t.dns_toggled);
       return;
     }
 
     // Default: Main Menu
-    await sendTelegram(botToken, chatId, `🛡️ <b>لوحة تحكم وقتي (Waqti) — ${currentDev.deviceName}</b>`, buildMainKeyboard(user, currentDev));
+    await sendTelegram(botToken, chatId, t.main_title(currentDev.deviceName), buildMainKeyboard(user, currentDev));
   } else if (update.callback_query) {
     const cb = update.callback_query;
     const chatId = cb.message.chat.id;
@@ -605,10 +876,11 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
 
     let user = await getKV(env, `usr:${chatId}`);
     if (!user || !user.activeDeviceId) {
-      await answerCallback(botToken, cb.id, "الجهاز غير مقترن");
+      await answerCallback(botToken, cb.id, "Device not paired");
       return;
     }
 
+    const t = getT(user.lang || "ar");
     const dev = await getKV(env, `dev:${user.activeDeviceId}`);
     if (!dev) return;
 
@@ -617,21 +889,21 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       const uid = parseInt(parts[1]);
       const mins = parseInt(parts[2]) || 15;
       await enqueueCommand(env, dev.deviceId, "add_time", { userId: uid, minutes: mins });
-      await answerCallback(botToken, cb.id, `✅ تمت الموافقة على +${mins} دقيقة!`);
-      await sendTelegram(botToken, chatId, `✅ <b>تمت الموافقة بنجاح!</b>\nتمت إضافة <b>+${mins} دقيقة</b> لحساب الطفل.`);
+      await answerCallback(botToken, cb.id, `+${mins} min OK`);
+      await sendTelegram(botToken, chatId, `✅ <b>+${mins} min approved!</b>`);
       return;
     }
 
     if (data.startsWith("deny_time:")) {
-      await answerCallback(botToken, cb.id, "❌ تم رفض الطلب");
-      await sendTelegram(botToken, chatId, "❌ تم رفض طلب الوقت الإضافي.");
+      await answerCallback(botToken, cb.id, "Denied");
+      await sendTelegram(botToken, chatId, "❌ Time request denied.");
       await enqueueCommand(env, dev.deviceId, "send_msg", { message: "عذراً، لم تتم الموافقة على طلب وقت إضافي حالياً." });
       return;
     }
 
     if (data === "cmd:status") {
       await answerCallback(botToken, cb.id);
-      await sendTelegram(botToken, chatId, buildStatusMessage(dev), buildMainKeyboard(user, dev));
+      await sendTelegram(botToken, chatId, buildStatusMessage(dev, user.lang), buildMainKeyboard(user, dev));
       return;
     }
 
@@ -641,14 +913,68 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       return;
     }
 
+    if (data === "cmd:language") {
+      await answerCallback(botToken, cb.id);
+      await sendTelegram(botToken, chatId, t.lang_select_title, buildLanguageKeyboard(user));
+      return;
+    }
+
+    if (data.startsWith("lang:set:")) {
+      const chosenLang = data.split(":")[2];
+      user.lang = chosenLang;
+      await putKV(env, `usr:${chatId}`, user);
+      const newT = getT(chosenLang);
+      await answerCallback(botToken, cb.id, chosenLang.toUpperCase());
+      await sendTelegram(botToken, chatId, newT.lang_switched, buildMainKeyboard(user, dev));
+      return;
+    }
+
+    if (data === "cmd:schedule") {
+      await answerCallback(botToken, cb.id);
+      await sendTelegram(botToken, chatId, t.sched_title(dev.deviceName), buildScheduleKeyboard(user, dev));
+      return;
+    }
+
+    if (data.startsWith("sched:set:")) {
+      const parts = data.split(":");
+      // sched:set:<username>:<start>:<end>
+      const targetUser = parts[2];
+      const start = parts[3];
+      const end = parts[4];
+      await enqueueCommand(env, dev.deviceId, "set_schedule", {
+        username: targetUser,
+        scheduleStart: start,
+        scheduleEnd: end
+      });
+      await answerCallback(botToken, cb.id, `${start} - ${end}`);
+      await sendTelegram(botToken, chatId, t.sched_saved(targetUser, start, end), buildMainKeyboard(user, dev));
+      return;
+    }
+
+    if (data.startsWith("sched:manual:")) {
+      const targetUser = data.split(":")[2];
+      user.pendingInput = { type: "set_schedule_manual", username: targetUser };
+      await putKV(env, `usr:${chatId}`, user);
+      await answerCallback(botToken, cb.id);
+      await sendTelegram(botToken, chatId, t.sched_manual_prompt);
+      return;
+    }
+
+    if (data === "cmd:update") {
+      await enqueueCommand(env, dev.deviceId, "check_update");
+      await answerCallback(botToken, cb.id, "Checking updates...");
+      await sendTelegram(botToken, chatId, t.update_sent);
+      return;
+    }
+
     if (data.startsWith("device:switch:")) {
       const targetId = data.substring(14);
       if (user.pairedDeviceIds.includes(targetId)) {
         user.activeDeviceId = targetId;
         await putKV(env, `usr:${chatId}`, user);
         const tDev = await getKV(env, `dev:${targetId}`);
-        await answerCallback(botToken, cb.id, `تم التبديل إلى: ${tDev?.deviceName || targetId}`);
-        await sendTelegram(botToken, chatId, `✅ <b>تم التبديل بنجاح إلى:</b> 💻 <b>${tDev?.deviceName || targetId}</b>`, buildMainKeyboard(user, tDev));
+        await answerCallback(botToken, cb.id, `${tDev?.deviceName || targetId}`);
+        await sendTelegram(botToken, chatId, `✅ <b>Active device:</b> 💻 <b>${tDev?.deviceName || targetId}</b>`, buildMainKeyboard(user, tDev));
       }
       return;
     }
@@ -657,7 +983,7 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       user.pendingInput = { type: "pair_new_device" };
       await putKV(env, `usr:${chatId}`, user);
       await answerCallback(botToken, cb.id);
-      await sendTelegram(botToken, chatId, `➕ <b>ربط جهاز إضافي:</b>\nأرسل كود الاقتران المكون من 6 أرقام للكمبيوتر الآخر هنا:`);
+      await sendTelegram(botToken, chatId, `➕ <b>Pair Device:</b>\nSend the 10-digit pairing code here:`);
       return;
     }
 
@@ -672,38 +998,38 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       user.activeDeviceId = user.pairedDeviceIds.length > 0 ? user.pairedDeviceIds[0] : null;
       await putKV(env, `usr:${chatId}`, user);
 
-      await answerCallback(botToken, cb.id, "تم إزالة الجهاز");
+      await answerCallback(botToken, cb.id, "Unpaired");
       if (user.activeDeviceId) {
         const nextDev = await getKV(env, `dev:${user.activeDeviceId}`);
-        await sendTelegram(botToken, chatId, `🗑️ تم إلغاء ربط الجهاز السابق. تم التبديل تلقائياً إلى: 💻 <b>${nextDev?.deviceName}</b>`, buildMainKeyboard(user, nextDev));
+        await sendTelegram(botToken, chatId, `🗑️ Device unpaired. Switched to: 💻 <b>${nextDev?.deviceName}</b>`, buildMainKeyboard(user, nextDev));
       } else {
-        await sendTelegram(botToken, chatId, `🗑️ تم إلغاء ربط الجهاز. لا توجد أجهزة متبقية بحسابك.`);
+        await sendTelegram(botToken, chatId, `🗑️ Device unpaired. No devices left.`);
       }
       return;
     }
 
     if (data === "cmd:screenshot") {
       if (!isOnline(dev)) {
-        await answerCallback(botToken, cb.id, "⚠️ الجهاز غير متصل حالياً", true);
+        await answerCallback(botToken, cb.id, t.shot_offline, true);
         return;
       }
-      await answerCallback(botToken, cb.id, "جاري التقاط لقطة الشاشة...");
+      await answerCallback(botToken, cb.id, "Capturing screenshot...");
       await enqueueCommand(env, dev.deviceId, "take_screenshot", { chatId });
-      await sendTelegram(botToken, chatId, `📸 <b>جاري التقاط ونقل لقطة الشاشة من جهاز (${dev.deviceName || 'PC'})...</b>`);
+      await sendTelegram(botToken, chatId, t.taking_shot(dev.deviceName || 'PC'));
       return;
     }
 
     if (data === "cmd:pause") {
       await enqueueCommand(env, dev.deviceId, "pause", { minutes: 30 });
-      await answerCallback(botToken, cb.id, "تم تفعيل الاستراحة");
-      await sendTelegram(botToken, chatId, isOnline(dev) ? "⚡ تم إيقاف الجلسة مؤقتاً (استراحة 30 دقيقة)." : "⏳ تم حفظ الأمر: سيتم إيقاف الجلسة فور تشغيل الجهاز.");
+      await answerCallback(botToken, cb.id, "Pause requested");
+      await sendTelegram(botToken, chatId, isOnline(dev) ? t.pause_active : t.pause_queued);
       return;
     }
 
     if (data === "cmd:dns") {
       await enqueueCommand(env, dev.deviceId, "toggle_dns");
-      await answerCallback(botToken, cb.id, "جاري تبديل حماية DNS");
-      await sendTelegram(botToken, chatId, "🛡️ تم إرسال أمر تبديل حماية Family DNS المانع للمواقع الإباحية والضارة.");
+      await answerCallback(botToken, cb.id, "DNS toggled");
+      await sendTelegram(botToken, chatId, t.dns_toggled);
       return;
     }
 
@@ -711,36 +1037,36 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       user.pendingInput = { type: "msg_to_screen" };
       await putKV(env, `usr:${chatId}`, user);
       await answerCallback(botToken, cb.id);
-      await sendTelegram(botToken, chatId, "✍️ <b>أرسل الآن نص الرسالة التي تريد أن تظهر على شاشة الطفل:</b>");
+      await sendTelegram(botToken, chatId, t.msg_prompt);
       return;
     }
 
     if (data === "cmd:top") {
       await enqueueCommand(env, dev.deviceId, "get_top");
-      await answerCallback(botToken, cb.id, "جاري إعداد تقرير النشاط...");
-      await sendTelegram(botToken, chatId, `📊 <b>جاري جلب تقرير البرامج والمواقع الأكثر استخداماً من جهاز (${dev.deviceName || 'PC'})...</b>`);
+      await answerCallback(botToken, cb.id, "Fetching activity report...");
+      await sendTelegram(botToken, chatId, t.top_prompt(dev.deviceName || 'PC'));
       return;
     }
 
     if (data === "cmd:limits") {
       await answerCallback(botToken, cb.id);
       const users = (dev.status && dev.status.users) || [];
-      let text = `⏳ <b>إدارة الوقت والحدود — ${dev.deviceName}</b>\n\n`;
+      let text = `⏳ <b>${t.btn_limits} — ${dev.deviceName}</b>\n\n`;
       const rows = [];
       for (const u of users) {
-        text += `👤 <b>${u.username}</b>: مستهلك <code>${u.usedToday}/${u.dailyLimit || '∞'}</code> دقيقة\n`;
+        text += `👤 <b>${u.username}</b>: <code>${u.usedToday}/${u.dailyLimit || '∞'}</code> min\n`;
         rows.push([
-          { text: `➕ 15د (${u.username})`, callback_data: `time:add:${u.username}:15` },
-          { text: `➕ 30د (${u.username})`, callback_data: `time:add:${u.username}:30` },
-          { text: `➕ 60د (${u.username})`, callback_data: `time:add:${u.username}:60` }
+          { text: `➕ 15m (${u.username})`, callback_data: `time:add:${u.username}:15` },
+          { text: `➕ 30m (${u.username})`, callback_data: `time:add:${u.username}:30` },
+          { text: `➕ 60m (${u.username})`, callback_data: `time:add:${u.username}:60` }
         ]);
         rows.push([
-          { text: `➖ 15د (${u.username})`, callback_data: `time:sub:${u.username}:15` },
-          { text: `➖ 30د (${u.username})`, callback_data: `time:sub:${u.username}:30` },
-          { text: `🔒 قفل فوري`, callback_data: `action:lock:${u.sessionId || 1}` }
+          { text: `➖ 15m (${u.username})`, callback_data: `time:sub:${u.username}:15` },
+          { text: `➖ 30m (${u.username})`, callback_data: `time:sub:${u.username}:30` },
+          { text: t.btn_lock, callback_data: `action:lock:${u.sessionId || 1}` }
         ]);
       }
-      rows.push([{ text: "🏠 القائمة الرئيسية", callback_data: "cmd:menu" }]);
+      rows.push([{ text: t.btn_home, callback_data: "cmd:menu" }]);
       await sendTelegram(botToken, chatId, text, { inline_keyboard: rows });
       return;
     }
@@ -752,22 +1078,22 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       const minutes = parseInt(parts[3], 10);
       const delta = isAdd ? minutes : -minutes;
       await enqueueCommand(env, dev.deviceId, "adjust_time", { username, minutes: delta });
-      await answerCallback(botToken, cb.id, `تم تعديل الوقت: ${isAdd ? "+" : "-"}${minutes} د`);
-      await sendTelegram(botToken, chatId, isOnline(dev) ? `⚡ تم تعديل الوقت لـ ${username}` : `⏳ تم حفظ الأمر: سيتم تعديل وقت ${username} فور تشغيل الجهاز.`);
+      await answerCallback(botToken, cb.id, `${isAdd ? "+" : "-"}${minutes} min`);
+      await sendTelegram(botToken, chatId, isOnline(dev) ? t.time_adjusted(username, delta) : t.time_queued(username));
       return;
     }
 
     if (data.startsWith("action:lock:")) {
       const sessionId = parseInt(data.split(":")[2], 10);
       await enqueueCommand(env, dev.deviceId, "lock_screen", { sessionId });
-      await answerCallback(botToken, cb.id, "تم إرسال أمر القفل");
-      await sendTelegram(botToken, chatId, isOnline(dev) ? "⚡ تم قفل الشاشة." : "⏳ سيتم قفل الشاشة فور تشغيل الجهاز.");
+      await answerCallback(botToken, cb.id, "Lock sent");
+      await sendTelegram(botToken, chatId, isOnline(dev) ? t.lock_sent : t.lock_queued);
       return;
     }
 
     if (data === "cmd:menu") {
       await answerCallback(botToken, cb.id);
-      await sendTelegram(botToken, chatId, `🛡️ <b>لوحة تحكم وقتي (Waqti) — ${dev.deviceName}</b>`, buildMainKeyboard(user, dev));
+      await sendTelegram(botToken, chatId, t.main_title(dev.deviceName), buildMainKeyboard(user, dev));
       return;
     }
 
@@ -776,21 +1102,22 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
 }
 
 async function showDevicesMenu(env, botToken, chatId, user) {
-  let devMsg = `📱 <b>إدارة الأجهزة المرتبطة بحسابك (${user.pairedDeviceIds.length}):</b>\n\n`;
+  const t = getT(user.lang || "ar");
+  let devMsg = `📱 <b>${t.btn_devices(user.pairedDeviceIds.length)}:</b>\n\n`;
   const buttons = [];
   for (const dId of user.pairedDeviceIds) {
     const d = await getKV(env, `dev:${dId}`);
     if (d) {
       const isAct = dId === user.activeDeviceId;
-      devMsg += `• <b>${d.deviceName}</b> ${isAct ? '⭐ (الجهاز النشط)' : ''}\n`;
-      devMsg += `   الحالة: ${isOnline(d) ? '🟢 متصل' : '🔴 غير متصل'}\n\n`;
+      devMsg += `• <b>${d.deviceName}</b> ${isAct ? '⭐' : ''}\n`;
+      devMsg += `   Status: ${isOnline(d) ? t.online : t.offline}\n\n`;
       buttons.push([{ text: (isAct ? '⭐ ' : '💻 ') + d.deviceName, callback_data: `device:switch:${dId}` }]);
     }
   }
   buttons.push([
-    { text: "➕ ربط جهاز جديد", callback_data: "device:add" },
-    { text: "🗑️ حذف الجهاز النشط", callback_data: "device:unpair_active" }
+    { text: "➕ Pair Device", callback_data: "device:add" },
+    { text: "🗑️ Unpair Device", callback_data: "device:unpair_active" }
   ]);
-  buttons.push([{ text: "🏠 القائمة الرئيسية", callback_data: "cmd:menu" }]);
+  buttons.push([{ text: t.btn_home, callback_data: "cmd:menu" }]);
   await sendTelegram(botToken, chatId, devMsg, { inline_keyboard: buttons });
 }
