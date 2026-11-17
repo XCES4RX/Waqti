@@ -56,7 +56,9 @@ public static partial class SettingsRepository
             CloudRelayEnabled = ParseBool(map, KeyCloudRelayEnabled, true),
             CloudRelayUrl = map.GetValueOrDefault(KeyCloudRelayUrl, "https://waqti-relay.cpcontrol.workers.dev"),
             DeviceId = map.GetValueOrDefault(KeyDeviceId, string.Empty),
-            PairingCode = map.GetValueOrDefault(KeyPairingCode, string.Empty),
+            PairingCode = map.TryGetValue(KeyPairingCode, out var pCode) && pCode.Length == 10
+                ? pCode
+                : GenerateDevicePairingCode(map.GetValueOrDefault(KeyDeviceId, "PC-DEFAULT")),
             IsCloudPaired = ParseBool(map, KeyIsCloudPaired, false)
         };
     }
@@ -242,5 +244,34 @@ public static partial class SettingsRepository
     {
         SetCustomSetting(KeyPairingCode, pairingCode);
         SetCustomSetting(KeyIsCloudPaired, isPaired ? "1" : "0");
+    }
+
+    public static string GenerateUserPairingCode(string deviceId, string sid)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes($"WAQTI_USER:{deviceId}:{sid}"));
+        ulong val = System.BitConverter.ToUInt64(hash, 0);
+        long pin = 1000000000L + (long)(val % 9000000000L);
+        return pin.ToString("D10");
+    }
+
+    public static string GenerateDevicePairingCode(string deviceId)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes($"WAQTI_DEV:{deviceId}"));
+        ulong val = System.BitConverter.ToUInt64(hash, 0);
+        long pin = 1000000000L + (long)(val % 9000000000L);
+        return pin.ToString("D10");
+    }
+
+    public static bool IsUserCloudPaired(string sid)
+    {
+        var val = GetCustomSetting($"user_paired_{sid}");
+        return val == "1";
+    }
+
+    public static void SetUserCloudPaired(string sid, bool isPaired)
+    {
+        SetCustomSetting($"user_paired_{sid}", isPaired ? "1" : "0");
     }
 }

@@ -30,7 +30,6 @@ public partial class CountdownWindow : Window
     private bool _chimed5Min;
     private bool _chimed1Min;
     private bool _isPaused;
-    private System.Windows.Point _mouseDownPos;
     private ChildDashboardWindow? _dashboardWindow;
 
     public CountdownWindow()
@@ -65,7 +64,7 @@ public partial class CountdownWindow : Window
 
     private void CardBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        _mouseDownPos = e.GetPosition(this);
+        var startPos = PointToScreen(e.GetPosition(this));
         if (e.ButtonState == MouseButtonState.Pressed)
         {
             try
@@ -78,9 +77,8 @@ public partial class CountdownWindow : Window
             }
         }
 
-        var upPos = e.GetPosition(this);
-        // If it was mostly a click rather than a major drag, open Child Dashboard
-        if (Math.Abs(upPos.X - _mouseDownPos.X) < 5 && Math.Abs(upPos.Y - _mouseDownPos.Y) < 5)
+        var endPos = PointToScreen(Mouse.GetPosition(this));
+        if ((endPos - startPos).Length < 12)
         {
             OpenChildDashboard();
         }
@@ -95,7 +93,9 @@ public partial class CountdownWindow : Window
 
         _dashboardWindow.Show();
         _dashboardWindow.WindowState = WindowState.Normal;
+        _dashboardWindow.Topmost = true;
         _dashboardWindow.Activate();
+        _dashboardWindow.Focus();
     }
 
     private void OnLocalTick()
@@ -136,7 +136,9 @@ public partial class CountdownWindow : Window
 
         if (_remainingSeconds < 0)
         {
-            CountdownText.Text = "--:--:--";
+            CountdownText.Text = "ACTIVE";
+            CountdownText.Foreground = BrushNormal;
+            StatusDot.Fill = BrushNormal;
             return;
         }
 
@@ -209,7 +211,7 @@ public partial class CountdownWindow : Window
             }
 
             _isPaused = status.IsPaused;
-            _remainingSeconds = Math.Max(0, status.EffectiveSecondsRemaining);
+            _remainingSeconds = status.EffectiveSecondsRemaining < 0 ? -1 : Math.Max(0, status.EffectiveSecondsRemaining);
             UsernameText.Text = string.IsNullOrWhiteSpace(status.Username) ? "PC" : status.Username;
 
             if (status.IsPaused)
@@ -217,6 +219,10 @@ public partial class CountdownWindow : Window
                 SubInfoText.Text = string.IsNullOrWhiteSpace(status.PauseUntil)
                     ? "Break / Dinner active"
                     : $"Break until {status.PauseUntil}";
+            }
+            else if (status.EffectiveSecondsRemaining < 0)
+            {
+                SubInfoText.Text = "Protected • Click for details";
             }
             else
             {
@@ -228,7 +234,10 @@ public partial class CountdownWindow : Window
             if (!string.IsNullOrWhiteSpace(status.BroadcastMessage))
             {
                 var msgWin = new NotificationMessageWindow(status.BroadcastMessage);
+                msgWin.Topmost = true;
                 msgWin.Show();
+                msgWin.Activate();
+                msgWin.Focus();
             }
         }
         catch

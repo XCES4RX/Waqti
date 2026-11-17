@@ -25,20 +25,35 @@ export default {
       const data = await request.json();
       const deviceId = data.deviceId || ("PC-" + crypto.randomUUID().slice(0, 8).toUpperCase());
       const deviceName = data.deviceName || "PC";
+      const pairingCode = data.pairingCode || Math.floor(1000000000 + Math.random() * 9000000000).toString();
 
       let device = await getKV(env, `dev:${deviceId}`) || {
         deviceId,
         deviceName,
-        pairingCode: Math.floor(100000 + Math.random() * 900000).toString(),
+        pairingCode,
         ownerChatId: null,
         lastSeen: new Date().toISOString(),
-        pendingCommands: []
+        pendingCommands: [],
+        pairedUsers: {},
+        users: []
       };
 
       device.deviceName = deviceName;
+      device.pairingCode = pairingCode;
       device.lastSeen = new Date().toISOString();
+      device.pairedUsers = device.pairedUsers || {};
+
+      if (data.users && Array.isArray(data.users)) {
+        device.users = data.users;
+        for (const u of data.users) {
+          if (u.pairingCode) {
+            await putKV(env, `pin:${u.pairingCode}`, { deviceId, userSid: u.sid, username: u.username });
+          }
+        }
+      }
+
       await putKV(env, `dev:${deviceId}`, device);
-      await putKV(env, `pin:${device.pairingCode}`, deviceId);
+      await putKV(env, `pin:${device.pairingCode}`, { deviceId });
 
       return jsonResponse({
         success: true,
@@ -59,13 +74,24 @@ export default {
         device = {
           deviceId,
           deviceName: data.deviceName || "PC",
-          pairingCode: Math.floor(100000 + Math.random() * 900000).toString(),
+          pairingCode: data.pairingCode || Math.floor(1000000000 + Math.random() * 9000000000).toString(),
           ownerChatId: null,
           lastSeen: new Date().toISOString(),
-          pendingCommands: []
+          pendingCommands: [],
+          pairedUsers: {},
+          users: []
         };
-        await putKV(env, `dev:${deviceId}`, device);
-        await putKV(env, `pin:${device.pairingCode}`, deviceId);
+      }
+
+      device.pairedUsers = device.pairedUsers || {};
+
+      if (data.users && Array.isArray(data.users)) {
+        device.users = data.users;
+        for (const u of data.users) {
+          if (u.pairingCode) {
+            await putKV(env, `pin:${u.pairingCode}`, { deviceId, userSid: u.sid, username: u.username });
+          }
+        }
       }
 
       const commands = device.pendingCommands || [];
@@ -87,9 +113,19 @@ export default {
         memoryStore.set(`dev:${deviceId}`, device);
       }
 
+      const pairedUserSids = [];
+      if (device.users) {
+        for (const u of device.users) {
+          if (device.pairedUsers[u.sid]) {
+            pairedUserSids.push(u.sid);
+          }
+        }
+      }
+
       return jsonResponse({
         success: true,
-        isPaired: !!device.ownerChatId,
+        isPaired: !!device.ownerChatId || pairedUserSids.length > 0,
+        pairedUserSids,
         commands
       });
     }
@@ -415,19 +451,37 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
 
       if (p.type === "pair_new_device") {
         const code = text.replace(/[^0-9]/g, "");
-        if (code.length === 6) {
-          const dId = await getKV(env, `pin:${code}`);
-          if (dId) {
+        if (code.length === 6 || code.length === 10) {
+          let pinTarget = await getKV(env, `pin:${code}`);
+          if (pinTarget) {
+            if (typeof pinTarget === "string") pinTarget = { deviceId: pinTarget };
+            const dId = pinTarget.deviceId;
             const dev = await getKV(env, `dev:${dId}`);
-            dev.ownerChatId = chatId;
-            await putKV(env, `dev:${dId}`, dev);
+            if (dev) {
+              dev.ownerChatId = chatId;
+              dev.pairedUsers = dev.pairedUsers || {};
+              if (!user.pairedDeviceIds.includes(dId)) user.pairedDeviceIds.push(dId);
+              user.activeDeviceId = dId;
 
-            if (!user.pairedDeviceIds.includes(dId)) user.pairedDeviceIds.push(dId);
-            user.activeDeviceId = dId;
-            await putKV(env, `usr:${chatId}`, user);
+              if (pinTarget.userSid) {
+                dev.pairedUsers[pinTarget.userSid] = chatId;
+                user.pairedUsers = user.pairedUsers || [];
+                if (!user.pairedUsers.some(x => x.userSid === pinTarget.userSid)) {
+                  user.pairedUsers.push({ deviceId: dId, userSid: pinTarget.userSid, username: pinTarget.username });
+                }
+                user.activeChild = { deviceId: dId, userSid: pinTarget.userSid, username: pinTarget.username };
+                await putKV(env, `dev:${dId}`, dev);
+                await putKV(env, `usr:${chatId}`, user);
 
-            await sendTelegram(botToken, chatId, `✅ <b>تم ربط الجهاز بنجاح!</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n📱 إجمالي أجهزتك المسجلة: ${user.pairedDeviceIds.length}`, buildMainKeyboard(user, dev));
-            return;
+                await sendTelegram(botToken, chatId, `✅ <b>تم ربط حساب الطفل بنجاح!</b>\n👤 المستخدم: <b>${pinTarget.username}</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n🔢 كود الاقتران: <code>${code}</code>\n\nيمكنك الآن إدارة وقته، إيقاف/استئناف الجلسة، وتلقي طلباته مباشرة!`, buildMainKeyboard(user, dev));
+                return;
+              } else {
+                await putKV(env, `dev:${dId}`, dev);
+                await putKV(env, `usr:${chatId}`, user);
+                await sendTelegram(botToken, chatId, `✅ <b>تم ربط الجهاز بنجاح!</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n📱 إجمالي أجهزتك المسجلة: ${user.pairedDeviceIds.length}`, buildMainKeyboard(user, dev));
+                return;
+              }
+            }
           }
         }
         await sendTelegram(botToken, chatId, `❌ كود الاقتران غير صحيح أو منتهي الصلاحية.`);
@@ -435,27 +489,50 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       }
     }
 
-    // Direct /start with code or raw 6-digit code
+    // Direct /start with code or raw 6-digit or 10-digit code
     let pairCode = null;
     if (text.startsWith("/start") && text.split(/\s+/).length > 1) {
       pairCode = text.split(/\s+/)[1].replace(/[^0-9]/g, "");
-    } else if (text.replace(/[^0-9]/g, "").length === 6) {
-      pairCode = text.replace(/[^0-9]/g, "");
+    } else {
+      const cleanNum = text.replace(/[^0-9]/g, "");
+      if (cleanNum.length === 6 || cleanNum.length === 10) {
+        pairCode = cleanNum;
+      }
     }
 
     if (pairCode) {
-      const dId = await getKV(env, `pin:${pairCode}`);
-      if (dId) {
+      let pinTarget = await getKV(env, `pin:${pairCode}`);
+      if (pinTarget) {
+        if (typeof pinTarget === "string") pinTarget = { deviceId: pinTarget };
+        const dId = pinTarget.deviceId;
         const dev = await getKV(env, `dev:${dId}`);
-        dev.ownerChatId = chatId;
-        await putKV(env, `dev:${dId}`, dev);
+        if (dev) {
+          dev.ownerChatId = chatId;
+          dev.pairedUsers = dev.pairedUsers || {};
 
-        if (!user.pairedDeviceIds.includes(dId)) user.pairedDeviceIds.push(dId);
-        user.activeDeviceId = dId;
-        await putKV(env, `usr:${chatId}`, user);
+          if (!user.pairedDeviceIds.includes(dId)) user.pairedDeviceIds.push(dId);
+          user.activeDeviceId = dId;
 
-        await sendTelegram(botToken, chatId, `✅ <b>تم ربط الجهاز بنجاح!</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n🆔 المعرّف: <code>${dev.deviceId}</code>\n📱 إجمالي أجهزتك المسجلة: ${user.pairedDeviceIds.length}`, buildMainKeyboard(user, dev));
-        return;
+          if (pinTarget.userSid) {
+            dev.pairedUsers[pinTarget.userSid] = chatId;
+            user.pairedUsers = user.pairedUsers || [];
+            if (!user.pairedUsers.some(x => x.userSid === pinTarget.userSid)) {
+              user.pairedUsers.push({ deviceId: dId, userSid: pinTarget.userSid, username: pinTarget.username });
+            }
+            user.activeChild = { deviceId: dId, userSid: pinTarget.userSid, username: pinTarget.username };
+            await putKV(env, `dev:${dId}`, dev);
+            await putKV(env, `usr:${chatId}`, user);
+
+            await sendTelegram(botToken, chatId, `✅ <b>تم ربط حساب الطفل بنجاح!</b>\n👤 المستخدم: <b>${pinTarget.username}</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n🔢 كود الاقتران: <code>${pairCode}</code>\n\nيمكنك الآن إدارة وقته، إيقاف/استئناف الجلسة، وتلقي طلباته مباشرة!`, buildMainKeyboard(user, dev));
+            return;
+          } else {
+            await putKV(env, `dev:${dId}`, dev);
+            await putKV(env, `usr:${chatId}`, user);
+
+            await sendTelegram(botToken, chatId, `✅ <b>تم ربط الجهاز بنجاح!</b>\n💻 الجهاز: <b>${dev.deviceName}</b>\n🆔 المعرّف: <code>${dev.deviceId}</code>\n📱 إجمالي أجهزتك المسجلة: ${user.pairedDeviceIds.length}`, buildMainKeyboard(user, dev));
+            return;
+          }
+        }
       }
     }
 
@@ -534,6 +611,23 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
 
     const dev = await getKV(env, `dev:${user.activeDeviceId}`);
     if (!dev) return;
+
+    if (data.startsWith("approve_time:")) {
+      const parts = data.split(":");
+      const uid = parseInt(parts[1]);
+      const mins = parseInt(parts[2]) || 15;
+      await enqueueCommand(env, dev.deviceId, "add_time", { userId: uid, minutes: mins });
+      await answerCallback(botToken, cb.id, `✅ تمت الموافقة على +${mins} دقيقة!`);
+      await sendTelegram(botToken, chatId, `✅ <b>تمت الموافقة بنجاح!</b>\nتمت إضافة <b>+${mins} دقيقة</b> لحساب الطفل.`);
+      return;
+    }
+
+    if (data.startsWith("deny_time:")) {
+      await answerCallback(botToken, cb.id, "❌ تم رفض الطلب");
+      await sendTelegram(botToken, chatId, "❌ تم رفض طلب الوقت الإضافي.");
+      await enqueueCommand(env, dev.deviceId, "send_msg", { message: "عذراً، لم تتم الموافقة على طلب وقت إضافي حالياً." });
+      return;
+    }
 
     if (data === "cmd:status") {
       await answerCallback(botToken, cb.id);

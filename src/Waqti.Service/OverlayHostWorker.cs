@@ -31,9 +31,27 @@ public sealed class OverlayHostWorker : BackgroundService
 
     public bool SendMessageToUser(string username, string message)
     {
+        if (string.IsNullOrWhiteSpace(username) || username.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var s in _sessionTracker.ActiveSessions.Values)
+            {
+                _pendingMessages[s.SessionId] = message;
+            }
+            return true;
+        }
+
         var target = _sessionTracker.ActiveSessions.Values
             .FirstOrDefault(s => s.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
-        if (target is null) return false;
+        if (target is null)
+        {
+            var consoleId = SessionManager.GetActiveConsoleSessionId();
+            if (consoleId.HasValue)
+            {
+                _pendingMessages[consoleId.Value] = message;
+                return true;
+            }
+            return false;
+        }
         _pendingMessages[target.SessionId] = message;
         return true;
     }
@@ -42,10 +60,21 @@ public sealed class OverlayHostWorker : BackgroundService
     {
         var target = _sessionTracker.ActiveSessions.Values
             .FirstOrDefault(s => s.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
-        if (target is null) return false;
-        _pausedSessions[target.SessionId] = DateTime.Now.AddMinutes(minutes);
-        SessionManager.DisconnectSession(target.SessionId);
-        return true;
+        if (target is not null)
+        {
+            _pausedSessions[target.SessionId] = DateTime.Now.AddMinutes(minutes);
+            SessionManager.DisconnectSession(target.SessionId);
+            return true;
+        }
+
+        var consoleId = SessionManager.GetActiveConsoleSessionId();
+        if (consoleId.HasValue)
+        {
+            _pausedSessions[consoleId.Value] = DateTime.Now.AddMinutes(minutes);
+            SessionManager.DisconnectSession(consoleId.Value);
+            return true;
+        }
+        return false;
     }
 
     public bool ResumeUser(string username)
@@ -335,24 +364,42 @@ public sealed class OverlayHostWorker : BackgroundService
         var user = UserRepository.GetBySid(session.UserSid);
         if (user is null || !user.IsRestricted)
         {
+            var isPausedUnrestricted = IsUserPaused(sessionId, out var pUntil);
             return new OverlayStatus
             {
-                ShouldShow = false,
+                ShouldShow = settings.ShowCountdownOverlay,
                 Username = session.Username,
                 IsRestricted = false,
-                BroadcastMessage = pendingMsg
+                DailyMinutes = 0,
+                MinutesUsed = 0,
+                ScheduleStart = "00:00",
+                ScheduleEnd = "23:59",
+                EffectiveSecondsRemaining = -1,
+                SessionMinutes = 1,
+                BroadcastMessage = pendingMsg,
+                IsPaused = isPausedUnrestricted,
+                PauseUntil = isPausedUnrestricted ? pUntil.ToString("HH:mm") : null
             };
         }
 
         var limit = LimitRepository.GetByUserId(user.Id);
         if (limit is null)
         {
+            var isPausedNoLimit = IsUserPaused(sessionId, out var pUntilNoLimit);
             return new OverlayStatus
             {
-                ShouldShow = false,
+                ShouldShow = settings.ShowCountdownOverlay,
                 Username = session.Username,
                 IsRestricted = true,
-                BroadcastMessage = pendingMsg
+                DailyMinutes = 0,
+                MinutesUsed = 0,
+                ScheduleStart = "00:00",
+                ScheduleEnd = "23:59",
+                EffectiveSecondsRemaining = -1,
+                SessionMinutes = 1,
+                BroadcastMessage = pendingMsg,
+                IsPaused = isPausedNoLimit,
+                PauseUntil = isPausedNoLimit ? pUntilNoLimit.ToString("HH:mm") : null
             };
         }
 

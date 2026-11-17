@@ -59,6 +59,16 @@ public sealed class CloudRelayWorker : BackgroundService
             var hadCommands = false;
             try
             {
+                var usersList = UserRepository.GetAll().Select(u => new
+                {
+                    sid = u.Sid,
+                    username = u.Username,
+                    isRestricted = u.IsRestricted,
+                    pairingCode = SettingsRepository.GenerateUserPairingCode(_deviceId, u.Sid)
+                }).ToList();
+
+                var devicePin = SettingsRepository.GenerateDevicePairingCode(_deviceId);
+
                 // 1. Ensure registered once or if pairing code is missing
                 if (!_isRegistered || string.IsNullOrWhiteSpace(settings.PairingCode))
                 {
@@ -66,6 +76,8 @@ public sealed class CloudRelayWorker : BackgroundService
                         settings.CloudRelayUrl,
                         _deviceId,
                         Environment.MachineName,
+                        devicePin,
+                        usersList,
                         stoppingToken);
 
                     if (regResult is not null)
@@ -83,11 +95,20 @@ public sealed class CloudRelayWorker : BackgroundService
                     settings.CloudRelayUrl,
                     _deviceId,
                     status,
+                    usersList,
                     stoppingToken);
 
                 if (hbResult is not null)
                 {
                     SettingsRepository.SavePairingInfo(settings.PairingCode, hbResult.IsPaired);
+
+                    if (hbResult.PairedUserSids is not null)
+                    {
+                        foreach (var u in UserRepository.GetAll())
+                        {
+                            SettingsRepository.SetUserCloudPaired(u.Sid, hbResult.PairedUserSids.Contains(u.Sid));
+                        }
+                    }
 
                     // 4. Process returned commands
                     if (hbResult.Commands.Count > 0)
@@ -181,29 +202,38 @@ public sealed class CloudRelayWorker : BackgroundService
         {
             switch (cmd.Action.ToLowerInvariant())
             {
+                case "add_time":
                 case "adjust_time":
                 {
                     var username = cmd.Args.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "";
+                    var userId = cmd.Args.TryGetProperty("userId", out var uid) ? uid.GetInt32() : 0;
                     var delta = cmd.Args.TryGetProperty("minutes", out var m) ? m.GetInt32() : 0;
-                    if (!string.IsNullOrWhiteSpace(username) && delta != 0)
+
+                    User? targetUser = null;
+                    if (userId > 0) targetUser = UserRepository.GetAll().FirstOrDefault(x => x.Id == userId);
+                    if (targetUser is null && !string.IsNullOrWhiteSpace(username))
                     {
-                        var user = UserRepository.GetAll().FirstOrDefault(x => x.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
-                        if (user is not null)
+                        targetUser = UserRepository.GetAll().FirstOrDefault(x => x.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+                    }
+                    if (targetUser is null)
+                    {
+                        targetUser = UserRepository.GetAll().FirstOrDefault(x => x.IsRestricted) ?? UserRepository.GetAll().FirstOrDefault();
+                    }
+
+                    if (targetUser is not null && delta != 0)
+                    {
+                        var limit = LimitRepository.GetByUserId(targetUser.Id);
+                        var baseMins = limit?.DailyMinutes ?? 120;
+                        var newMins = Math.Clamp(baseMins + delta, 0, 1440);
+                        LimitRepository.Upsert(new LimitConfig
                         {
-                            var limit = LimitRepository.GetByUserId(user.Id);
-                            if (limit is not null)
-                            {
-                                var newMins = Math.Clamp(limit.DailyMinutes + delta, 0, 1440);
-                                LimitRepository.Upsert(new LimitConfig
-                                {
-                                    UserId = user.Id,
-                                    DailyMinutes = newMins,
-                                    ScheduleStart = limit.ScheduleStart,
-                                    ScheduleEnd = limit.ScheduleEnd
-                                });
-                                actionName = $"تعديل وقت {username} ({delta:+#;-#;0} دقيقة)";
-                            }
-                        }
+                            UserId = targetUser.Id,
+                            DailyMinutes = newMins,
+                            ScheduleStart = limit?.ScheduleStart ?? new TimeOnly(8, 0),
+                            ScheduleEnd = limit?.ScheduleEnd ?? new TimeOnly(22, 0)
+                        });
+                        UserRepository.SetRestricted(targetUser.Id, true);
+                        actionName = $"إضافة وقت لـ {targetUser.Username} (+{delta} دقيقة)";
                     }
                     break;
                 }
@@ -227,9 +257,17 @@ public sealed class CloudRelayWorker : BackgroundService
                 case "pause":
                 {
                     var minutes = cmd.Args.TryGetProperty("minutes", out var m) ? m.GetInt32() : 30;
-                    foreach (var u in UserRepository.GetAll().Where(x => x.IsRestricted))
+                    var username = cmd.Args.TryGetProperty("username", out var un) ? un.GetString() : null;
+                    if (!string.IsNullOrWhiteSpace(username))
                     {
-                        _overlayHost.PauseUser(u.Username, minutes);
+                        _overlayHost.PauseUser(username, minutes);
+                    }
+                    else
+                    {
+                        foreach (var usr in UserRepository.GetAll())
+                        {
+                            _overlayHost.PauseUser(usr.Username, minutes);
+                        }
                     }
                     actionName = $"إيقاف مؤقت ({minutes} دقيقة)";
                     break;
@@ -237,9 +275,17 @@ public sealed class CloudRelayWorker : BackgroundService
 
                 case "resume":
                 {
-                    foreach (var u in UserRepository.GetAll().Where(x => x.IsRestricted))
+                    var username = cmd.Args.TryGetProperty("username", out var un) ? un.GetString() : null;
+                    if (!string.IsNullOrWhiteSpace(username))
                     {
-                        _overlayHost.ResumeUser(u.Username);
+                        _overlayHost.ResumeUser(username);
+                    }
+                    else
+                    {
+                        foreach (var usr in UserRepository.GetAll())
+                        {
+                            _overlayHost.ResumeUser(usr.Username);
+                        }
                     }
                     actionName = "استئناف الجلسة";
                     break;
@@ -248,11 +294,19 @@ public sealed class CloudRelayWorker : BackgroundService
                 case "send_msg":
                 {
                     var message = cmd.Args.TryGetProperty("message", out var msg) ? msg.GetString() ?? "" : "";
+                    var username = cmd.Args.TryGetProperty("username", out var un) ? un.GetString() : null;
                     if (!string.IsNullOrWhiteSpace(message))
                     {
-                        foreach (var u in UserRepository.GetAll().Where(x => x.IsRestricted))
+                        if (!string.IsNullOrWhiteSpace(username))
                         {
-                            _overlayHost.SendMessageToUser(u.Username, message);
+                            _overlayHost.SendMessageToUser(username, message);
+                        }
+                        else
+                        {
+                            foreach (var usr in UserRepository.GetAll())
+                            {
+                                _overlayHost.SendMessageToUser(usr.Username, message);
+                            }
                         }
                     }
                     actionName = "إرسال رسالة للشاشة";

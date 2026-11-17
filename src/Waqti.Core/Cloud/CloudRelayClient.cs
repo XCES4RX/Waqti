@@ -20,7 +20,8 @@ public sealed record CloudCommand(
 public sealed record CloudHeartbeatResult(
     bool Success,
     bool IsPaired,
-    List<CloudCommand> Commands);
+    List<CloudCommand> Commands,
+    List<string>? PairedUserSids = null);
 
 public sealed class CloudRelayClient
 {
@@ -39,12 +40,14 @@ public sealed class CloudRelayClient
         string relayUrl,
         string deviceId,
         string deviceName,
+        string? pairingCode = null,
+        object? users = null,
         CancellationToken ct = default)
     {
         try
         {
             var url = $"{relayUrl.TrimEnd('/')}/api/device/register";
-            var payload = new { deviceId, deviceName };
+            var payload = new { deviceId, deviceName, pairingCode, users };
             using var resp = await _http.PostAsJsonAsync(url, payload, ct);
             if (!resp.IsSuccessStatusCode) return null;
 
@@ -55,7 +58,7 @@ public sealed class CloudRelayClient
             return new CloudRegisterResult(
                 node["success"]?.GetValue<bool>() ?? false,
                 node["deviceId"]?.GetValue<string>() ?? deviceId,
-                node["pairingCode"]?.GetValue<string>() ?? string.Empty,
+                node["pairingCode"]?.GetValue<string>() ?? pairingCode ?? string.Empty,
                 node["isPaired"]?.GetValue<bool>() ?? false,
                 node["botUsername"]?.GetValue<string>() ?? "Waqti_bot",
                 node["botPairLink"]?.GetValue<string>() ?? string.Empty);
@@ -70,12 +73,13 @@ public sealed class CloudRelayClient
         string relayUrl,
         string deviceId,
         object status,
+        object? users = null,
         CancellationToken ct = default)
     {
         try
         {
             var url = $"{relayUrl.TrimEnd('/')}/api/device/heartbeat";
-            var payload = new { deviceId, status };
+            var payload = new { deviceId, status, users };
             using var resp = await _http.PostAsJsonAsync(url, payload, ct);
             if (!resp.IsSuccessStatusCode) return null;
 
@@ -98,7 +102,20 @@ public sealed class CloudRelayClient
                 }
             }
 
-            return new CloudHeartbeatResult(success, isPaired, commands);
+            var pairedUserSids = new List<string>();
+            if (root.TryGetProperty("pairedUserSids", out var pSids) && pSids.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var sidItem in pSids.EnumerateArray())
+                {
+                    var sidStr = sidItem.GetString();
+                    if (!string.IsNullOrWhiteSpace(sidStr))
+                    {
+                        pairedUserSids.Add(sidStr);
+                    }
+                }
+            }
+
+            return new CloudHeartbeatResult(success, isPaired, commands, pairedUserSids);
         }
         catch
         {

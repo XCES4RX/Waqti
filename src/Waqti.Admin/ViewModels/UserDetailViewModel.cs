@@ -1,5 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Waqti.Admin.Services;
@@ -46,6 +49,20 @@ public partial class UserDetailViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<EventRecord> _eventRecords = [];
 
+    private DispatcherTimer? _pollTimer;
+
+    [ObservableProperty]
+    private string _userPairingCode = string.Empty;
+
+    [ObservableProperty]
+    private string _userPairingStatusText = string.Empty;
+
+    [ObservableProperty]
+    private SolidColorBrush _userPairingStatusColor = Brushes.Gray;
+
+    [ObservableProperty]
+    private bool _isUserPaired;
+
     public UserDetailViewModel(UserRow user, Dictionary<string, string> sidToUsername, Action navigateBack)
     {
         User = user;
@@ -60,11 +77,65 @@ public partial class UserDetailViewModel : ObservableObject
         LoadPolicyFields();
         RefreshEvents();
         EditableUsageMinutes = User.TodayMinutesUsed;
+        LoadUserPairingInfo();
+
+        _pollTimer?.Stop();
+        _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _pollTimer.Tick += (_, _) =>
+        {
+            var paired = SettingsRepository.IsUserCloudPaired(User.Sid);
+            if (paired != IsUserPaired)
+            {
+                IsUserPaired = paired;
+                LoadUserPairingInfo();
+            }
+        };
+        _pollTimer.Start();
+    }
+
+    public void LoadUserPairingInfo()
+    {
+        var deviceId = SettingsRepository.GetOrCreateDeviceId();
+        UserPairingCode = SettingsRepository.GenerateUserPairingCode(deviceId, User.Sid);
+        IsUserPaired = SettingsRepository.IsUserCloudPaired(User.Sid);
+        if (IsUserPaired)
+        {
+            UserPairingStatusText = LocalizedStrings.Instance["status_cloud_connected"];
+            UserPairingStatusColor = new SolidColorBrush(Color.FromRgb(22, 163, 74));
+        }
+        else
+        {
+            UserPairingStatusText = LocalizedStrings.Instance["status_cloud_waiting"];
+            UserPairingStatusColor = new SolidColorBrush(Color.FromRgb(217, 119, 6));
+        }
+    }
+
+    [RelayCommand]
+    private void OpenUserTelegramBot()
+    {
+        var url = $"https://t.me/Waqti_bot?start={UserPairingCode}";
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    [RelayCommand]
+    private void CopyUserPairingCode()
+    {
+        try
+        {
+            Clipboard.SetText(UserPairingCode);
+            MessageBox.Show(LocalizedStrings.Instance["code_copied"], "Waqti", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch { }
     }
 
     [RelayCommand]
     private void GoBack()
     {
+        _pollTimer?.Stop();
         _navigateBack();
     }
 
@@ -76,6 +147,7 @@ public partial class UserDetailViewModel : ObservableObject
         LoadLimitFields();
         LoadPolicyFields();
         EditableUsageMinutes = User.TodayMinutesUsed;
+        LoadUserPairingInfo();
     }
 
     [RelayCommand]
