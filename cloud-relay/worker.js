@@ -72,16 +72,19 @@ export default {
       const hasCommandsToClear = commands.length > 0;
 
       const now = Date.now();
+      device.lastSeen = new Date(now).toISOString();
+      if (data.status) device.status = data.status;
+      if (hasCommandsToClear) device.pendingCommands = [];
+
       const lastWrite = device._lastWrite || 0;
       const statusChanged = data.status && JSON.stringify(data.status) !== JSON.stringify(device.status);
-      const timeForPeriodicWrite = (now - lastWrite) > 60000; // Periodic write every 60s
+      const timeForPeriodicWrite = (now - lastWrite) > 45000;
 
       if (hasCommandsToClear || statusChanged || timeForPeriodicWrite) {
-        device.lastSeen = new Date(now).toISOString();
-        if (data.status) device.status = data.status;
-        device.pendingCommands = [];
         device._lastWrite = now;
         await putKV(env, `dev:${deviceId}`, device);
+      } else {
+        memoryStore.set(`dev:${deviceId}`, device);
       }
 
       return jsonResponse({

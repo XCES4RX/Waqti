@@ -39,9 +39,6 @@ public sealed class CloudRelayWorker : BackgroundService
     {
         _logger.Information("Cloud Relay Worker started");
 
-        // Ensure persistent device ID
-        _deviceId = SettingsRepository.GetOrCreateDeviceId();
-
         while (!stoppingToken.IsCancellationRequested)
         {
             var settings = SettingsRepository.Get();
@@ -49,6 +46,14 @@ public sealed class CloudRelayWorker : BackgroundService
             {
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                 continue;
+            }
+
+            // Dynamically ensure we're using the active device ID from settings
+            var currentId = SettingsRepository.GetOrCreateDeviceId();
+            if (_deviceId != currentId)
+            {
+                _deviceId = currentId;
+                _isRegistered = false;
             }
 
             var hadCommands = false;
