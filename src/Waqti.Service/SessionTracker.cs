@@ -56,10 +56,18 @@ public sealed class SessionTracker
         }
 
         var isAdmin = SessionManager.IsSessionAdmin(sessionId);
+        if (isAdmin)
+        {
+            _activeSessions.TryAdd(sessionId, new ActiveSession(sessionId, sid, username, DateTime.Now));
+            EventRepository.LogEvent(sid, EventType.LOGIN, "Admin session (unrestricted)");
+            _logger.Information("Admin logged in (unrestricted): {Username}", username);
+            return;
+        }
+
         var user = UserRepository.GetBySid(sid);
         if (user is null)
         {
-            user = UserRepository.Upsert(sid, username, !isAdmin);
+            user = UserRepository.Upsert(sid, username, true);
         }
 
         if (!user.IsRestricted)

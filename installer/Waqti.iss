@@ -2,7 +2,7 @@
 ; Requires Inno Setup 6.2+ (https://jrsoftware.org/isdownload.php)
 
 #define MyAppName      "Waqti"
-#define MyAppVersion   "1.1.0"
+#define MyAppVersion   "1.1.1"
 #define MyAppPublisher "Waqti"
 #define MyAppExeName   "Waqti.Admin.exe"
 #define ServiceExeName "Waqti.Service.exe"
@@ -19,7 +19,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 OutputDir=Output
-OutputBaseFilename=WaqtiSetup-v1.1.0
+OutputBaseFilename=WaqtiSetup-v1.1.1
 Compression=lzma2/ultra64
 SolidCompression=yes
 LZMAUseSeparateProcess=yes

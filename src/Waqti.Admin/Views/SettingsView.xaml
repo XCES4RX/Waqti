@@ -89,42 +89,18 @@
 
                 <Border Background="#FFFFFF" CornerRadius="14" BorderBrush="#E2E8F0" BorderThickness="1" Padding="20" Margin="0,0,0,24">
                     <StackPanel>
-                        <!-- Central Cloud Bot 1-Click Pairing -->
-                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,16">
-                            <StackPanel>
-                                <DockPanel Margin="0,0,0,10">
-                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                                        <md:PackIcon Kind="CloudCheck" Foreground="#16A34A" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                        <TextBlock Text="{Binding [cloud_pairing_title], Source={x:Static services:LocalizedStrings.Instance}}" FontWeight="Bold" FontSize="13" Foreground="#166534" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding CloudStatusText}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="12" Foreground="#15803D" VerticalAlignment="Center" />
-                                </DockPanel>
-
-                                <TextBlock Text="{Binding [cloud_pairing_desc], Source={x:Static services:LocalizedStrings.Instance}}"
-                                           Foreground="#374151" FontSize="12" Margin="0,0,0,10" />
-
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,10">
-                                    <Border Background="#FFFFFF" BorderBrush="#86EFAC" BorderThickness="2" CornerRadius="8" Padding="14,4" Margin="0,0,10,0">
-                                        <TextBlock Text="{Binding PairingCode}" FontSize="22" FontWeight="Bold" Foreground="#15803D" />
-                                    </Border>
-
-                                    <Button Content="{Binding [btn_open_bot], Source={x:Static services:LocalizedStrings.Instance}}"
-                                            Command="{Binding OpenTelegramBotCommand}"
-                                            Background="#16A34A" Foreground="#FFFFFF"
-                                            BorderThickness="0" Height="40" Margin="0,0,8,0"
-                                            Style="{StaticResource MaterialDesignRaisedButton}" />
-
-                                    <Button Content="{Binding [btn_new_code], Source={x:Static services:LocalizedStrings.Instance}}"
-                                            Command="{Binding RefreshPairingCodeCommand}"
-                                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                                            BorderBrush="#16A34A" Foreground="#16A34A" Height="40" />
+                        <!-- Info Notice: Pairing is configured per-child in Dashboard -->
+                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,16">
+                            <DockPanel>
+                                <Border Background="#EFF6FF" CornerRadius="8" Width="36" Height="36" Margin="0,0,12,0" DockPanel.Dock="Left">
+                                    <md:PackIcon Kind="AccountChildCircle" Foreground="#2563EB" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="ربط حسابات الأطفال ببوت وقتي (@Waqti_bot)" FontWeight="Bold" FontSize="13" Foreground="#1E293B" />
+                                    <TextBlock Text="يتم ربط كل طفل بكود اقتران خاص به من داخل بطاقة حسابه في لوحة التحكم الرئيسية، لضمان استقلالية التحكم في كل طفل ومنع تقييد حساب ولي الأمر."
+                                               Foreground="#64748B" FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap" />
                                 </StackPanel>
-
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding [lbl_device_id], Source={x:Static services:LocalizedStrings.Instance}}" Foreground="#6B7280" FontSize="11" />
-                                    <TextBlock Text="{Binding DeviceId}" Foreground="#374151" FontSize="11" FontWeight="SemiBold" />
-                                </StackPanel>
-                            </StackPanel>
+                            </DockPanel>
                         </Border>
 
                         <Expander Header="{Binding [expander_custom_bot], Source={x:Static services:LocalizedStrings.Instance}}" Margin="0,0,0,16">

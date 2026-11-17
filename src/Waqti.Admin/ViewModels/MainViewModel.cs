@@ -153,9 +153,10 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var settings = SettingsRepository.Get();
+            var anyUserPaired = UserRepository.GetAll().Any(u => SettingsRepository.IsUserCloudPaired(u.Sid));
             if (settings.CloudRelayEnabled)
             {
-                if (settings.IsCloudPaired)
+                if (settings.IsCloudPaired || anyUserPaired)
                 {
                     TelegramStatusText = LocalizationManager.T("telegram_cloud_active", lang);
                     TelegramStatusColor = new SolidColorBrush(Color.FromRgb(22, 163, 74)); // Modern Green

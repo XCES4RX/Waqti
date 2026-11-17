@@ -62,6 +62,10 @@ public sealed class UsageMonitorWorker : BackgroundService
 
         foreach (var (sessionId, session) in _sessionTracker.ActiveSessions)
         {
+            // NEVER monitor, restrict, or apply policies to Administrator sessions
+            if (SessionManager.IsSessionAdmin(sessionId))
+                continue;
+
             var user = UserRepository.GetBySid(session.UserSid);
             if (user is null) continue;
 

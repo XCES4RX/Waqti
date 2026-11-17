@@ -538,30 +538,13 @@ function buildMainKeyboard(user, dev) {
   };
 }
 
-function buildScheduleKeyboard(user, dev) {
+function buildCancelScheduleKeyboard(user) {
   const lang = user.lang || "ar";
   const t = getT(lang);
-  const users = (dev.status && dev.status.users) || [];
-  const targetUser = user.activeChild?.username || (users.length > 0 ? users[0].username : "child");
   return {
     inline_keyboard: [
       [
-        { text: "🌅 08:00 ➡️ 20:00 (8:00 - 20:00)", callback_data: `sched:set:${targetUser}:08:00:20:00` },
-        { text: "🌅 08:00 ➡️ 21:00 (8:00 - 21:00)", callback_data: `sched:set:${targetUser}:08:00:21:00` }
-      ],
-      [
-        { text: "🌅 08:00 ➡️ 22:00 (8:00 - 22:00)", callback_data: `sched:set:${targetUser}:08:00:22:00` },
-        { text: "🌅 09:00 ➡️ 21:00 (9:00 - 21:00)", callback_data: `sched:set:${targetUser}:09:00:21:00` }
-      ],
-      [
-        { text: "🌅 14:00 ➡️ 21:00 (14:00 - 21:00)", callback_data: `sched:set:${targetUser}:14:00:21:00` },
-        { text: "🌅 15:00 ➡️ 22:00 (15:00 - 22:00)", callback_data: `sched:set:${targetUser}:15:00:22:00` }
-      ],
-      [
-        { text: "✏️ تحديد يدوي (Custom)", callback_data: `sched:manual:${targetUser}` }
-      ],
-      [
-        { text: t.btn_home, callback_data: "cmd:menu" }
+        { text: t.btn_home || "🏠 القائمة الرئيسية", callback_data: "cmd:cancel_input" }
       ]
     ]
   };
@@ -670,22 +653,46 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       }
 
       if (p.type === "set_schedule_manual" && user.activeDeviceId) {
-        const parts = text.split(/[\s\-–—➡️to]+/i).filter(Boolean);
-        if (parts.length >= 2) {
-          const start = parts[0].trim();
-          const end = parts[1].trim();
-          const targetChild = p.username || (user.activeChild?.username || "all");
-          await enqueueCommand(env, user.activeDeviceId, "set_schedule", {
-            username: targetChild,
-            scheduleStart: start,
-            scheduleEnd: end
-          });
-          const dev = await getKV(env, `dev:${user.activeDeviceId}`);
-          await sendTelegram(botToken, chatId, t.sched_saved(targetChild, start, end), buildMainKeyboard(user, dev));
-          return;
+        if (text.startsWith("/") || text === "🏠" || text.includes("إلغاء") || text.toLowerCase() === "cancel") {
+          user.pendingInput = null;
+          await putKV(env, `usr:${chatId}`, user);
+          if (text === "🏠" || text.includes("إلغاء") || text.toLowerCase() === "cancel") {
+            const dev = await getKV(env, `dev:${user.activeDeviceId}`);
+            await sendTelegram(botToken, chatId, t.main_title(dev?.deviceName || "PC"), buildMainKeyboard(user, dev));
+            return;
+          }
         } else {
-          await sendTelegram(botToken, chatId, t.sched_manual_invalid);
-          return;
+          // Normalize Arabic-Indic digits to Latin
+          const normalized = text.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+          const matches = normalized.match(/([01]?[0-9]|2[0-3])(?::([0-5][0-9]))?/g);
+          if (matches && matches.length >= 2) {
+            let start = matches[0];
+            let end = matches[1];
+            if (!start.includes(":")) start = start.padStart(2, "0") + ":00";
+            else {
+              const [h, m] = start.split(":");
+              start = h.padStart(2, "0") + ":" + (m || "00").padStart(2, "0");
+            }
+            if (!end.includes(":")) end = end.padStart(2, "0") + ":00";
+            else {
+              const [h, m] = end.split(":");
+              end = h.padStart(2, "0") + ":" + (m || "00").padStart(2, "0");
+            }
+            const targetChild = p.username || (user.activeChild?.username || "all");
+            await enqueueCommand(env, user.activeDeviceId, "set_schedule", {
+              username: targetChild,
+              scheduleStart: start,
+              scheduleEnd: end
+            });
+            user.pendingInput = null;
+            await putKV(env, `usr:${chatId}`, user);
+            const dev = await getKV(env, `dev:${user.activeDeviceId}`);
+            await sendTelegram(botToken, chatId, t.sched_saved(targetChild, start, end), buildMainKeyboard(user, dev));
+            return;
+          } else {
+            await sendTelegram(botToken, chatId, t.sched_manual_invalid, buildCancelScheduleKeyboard(user));
+            return;
+          }
         }
       }
 
@@ -805,7 +812,10 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
         await sendTelegram(botToken, chatId, t.sched_saved(targetChild, start, end), buildMainKeyboard(user, currentDev));
         return;
       } else {
-        await sendTelegram(botToken, chatId, t.sched_title(currentDev.deviceName), buildScheduleKeyboard(user, currentDev));
+        const targetChild = user.activeChild?.username || "all";
+        user.pendingInput = { type: "set_schedule_manual", username: targetChild };
+        await putKV(env, `usr:${chatId}`, user);
+        await sendTelegram(botToken, chatId, t.sched_manual_prompt, buildCancelScheduleKeyboard(user));
         return;
       }
     }
@@ -929,34 +939,21 @@ async function handleTelegramUpdate(update, env, botToken, botUsername) {
       return;
     }
 
-    if (data === "cmd:schedule") {
-      await answerCallback(botToken, cb.id);
-      await sendTelegram(botToken, chatId, t.sched_title(dev.deviceName), buildScheduleKeyboard(user, dev));
-      return;
-    }
-
-    if (data.startsWith("sched:set:")) {
-      const parts = data.split(":");
-      // sched:set:<username>:<start>:<end>
-      const targetUser = parts[2];
-      const start = parts[3];
-      const end = parts[4];
-      await enqueueCommand(env, dev.deviceId, "set_schedule", {
-        username: targetUser,
-        scheduleStart: start,
-        scheduleEnd: end
-      });
-      await answerCallback(botToken, cb.id, `${start} - ${end}`);
-      await sendTelegram(botToken, chatId, t.sched_saved(targetUser, start, end), buildMainKeyboard(user, dev));
-      return;
-    }
-
-    if (data.startsWith("sched:manual:")) {
-      const targetUser = data.split(":")[2];
+    if (data === "cmd:schedule" || data.startsWith("sched:manual:")) {
+      const users = (dev.status && dev.status.users) || [];
+      const targetUser = data.startsWith("sched:manual:") ? data.split(":")[2] : (user.activeChild?.username || (users.length > 0 ? users[0].username : "child"));
       user.pendingInput = { type: "set_schedule_manual", username: targetUser };
       await putKV(env, `usr:${chatId}`, user);
       await answerCallback(botToken, cb.id);
-      await sendTelegram(botToken, chatId, t.sched_manual_prompt);
+      await sendTelegram(botToken, chatId, t.sched_manual_prompt, buildCancelScheduleKeyboard(user));
+      return;
+    }
+
+    if (data === "cmd:cancel_input") {
+      user.pendingInput = null;
+      await putKV(env, `usr:${chatId}`, user);
+      await answerCallback(botToken, cb.id);
+      await sendTelegram(botToken, chatId, t.main_title(dev.deviceName), buildMainKeyboard(user, dev));
       return;
     }
 

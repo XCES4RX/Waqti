@@ -127,6 +127,8 @@ public static class DatabaseManager
             CREATE INDEX IF NOT EXISTS idx_activity_user_date ON activity_log (user_id, date);
             """;
         schemaCmd.ExecuteNonQuery();
+
+        UserRepository.CleanAdminUsers();
     }
 
     public static SqliteConnection CreateConnection()

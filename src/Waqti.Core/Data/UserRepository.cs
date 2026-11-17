@@ -85,6 +85,18 @@ public static class UserRepository
         transaction.Commit();
     }
 
+    public static void CleanAdminUsers()
+    {
+        try
+        {
+            using var connection = DatabaseManager.CreateConnection();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "DELETE FROM users WHERE LOWER(username) = 'administrator' OR sid LIKE '%-500'";
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
     private static User ReadUser(SqliteDataReader reader)
     {
         return new User

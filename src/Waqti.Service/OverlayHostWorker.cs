@@ -283,6 +283,13 @@ public sealed class OverlayHostWorker : BackgroundService
 
         foreach (var (sessionId, session) in _sessionTracker.ActiveSessions)
         {
+            // Do NOT run overlay in Administrator accounts
+            if (SessionManager.IsSessionAdmin(sessionId))
+            {
+                KillOverlayInSession(sessionId);
+                continue;
+            }
+
             if (!SessionManager.IsProcessRunningInSession(OverlayProcessName, sessionId))
             {
                 var launched = SessionManager.LaunchInSession(sessionId, overlayExe);
@@ -293,6 +300,24 @@ public sealed class OverlayHostWorker : BackgroundService
                 }
             }
         }
+    }
+
+    private static void KillOverlayInSession(int sessionId)
+    {
+        try
+        {
+            foreach (var proc in Process.GetProcessesByName(OverlayProcessName))
+            {
+                using (proc)
+                {
+                    if (proc.SessionId == sessionId)
+                    {
+                        proc.Kill(entireProcessTree: true);
+                    }
+                }
+            }
+        }
+        catch { }
     }
 
     public async Task<(byte[] Bytes, string Username, int SessionId)?> CaptureScreenshotAsync(CancellationToken ct = default)
@@ -366,10 +391,9 @@ public sealed class OverlayHostWorker : BackgroundService
 
         if (isAdmin)
         {
-            var isPausedUnrestricted = IsUserPaused(sessionId, out var pUntil);
             return new OverlayStatus
             {
-                ShouldShow = settings.ShowCountdownOverlay,
+                ShouldShow = false,
                 Username = session.Username,
                 IsRestricted = false,
                 DailyMinutes = 0,
@@ -377,10 +401,7 @@ public sealed class OverlayHostWorker : BackgroundService
                 ScheduleStart = "00:00",
                 ScheduleEnd = "23:59",
                 EffectiveSecondsRemaining = -1,
-                SessionMinutes = 1,
-                BroadcastMessage = pendingMsg,
-                IsPaused = isPausedUnrestricted,
-                PauseUntil = isPausedUnrestricted ? pUntil.ToString("HH:mm") : null
+                SessionMinutes = 1
             };
         }
 

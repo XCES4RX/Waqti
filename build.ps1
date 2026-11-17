@@ -78,7 +78,7 @@ Write-Host "`n=== Building Installer with Ultra LZMA2 Compression ===" -Foregrou
 & $InnoSetupPath $issFile
 if ($LASTEXITCODE -ne 0) { Write-Error "Inno Setup compilation failed."; exit 1 }
 
-$versionedExe = Join-Path $repoRoot "installer\Output\WaqtiSetup-v1.1.0.exe"
+$versionedExe = Join-Path $repoRoot "installer\Output\WaqtiSetup-v1.1.1.exe"
 $genericExe   = Join-Path $repoRoot "installer\Output\WaqtiSetup.exe"
 if (Test-Path $versionedExe) {
     Copy-Item $versionedExe $genericExe -Force

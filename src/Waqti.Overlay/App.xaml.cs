@@ -33,6 +33,13 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        // Strictly prevent running in Administrator accounts
+        if (IsCurrentProcessAdmin())
+        {
+            Shutdown(0);
+            return;
+        }
+
         if (e.Args.Length >= 1 && e.Args[0].Equals("--dashboard", StringComparison.OrdinalIgnoreCase))
         {
             var dash = new ChildDashboardWindow();
@@ -129,6 +136,20 @@ public partial class App : System.Windows.Application
 
             File.WriteAllBytes(outputPath, bytes);
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsCurrentProcessAdmin()
+    {
+        try
+        {
+            using var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+            var principal = new System.Security.Principal.WindowsPrincipal(id);
+            return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
         }
         catch
         {

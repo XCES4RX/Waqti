@@ -21,6 +21,9 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<EventRecord> _eventRecords = [];
 
+    [ObservableProperty]
+    private Visibility _noStandardUsersVisibility = Visibility.Collapsed;
+
     public Dictionary<string, string> SidToUsername { get; private set; } = new();
 
     public DashboardViewModel(Action<UserRow> navigateToDetail)
@@ -76,6 +79,7 @@ public partial class DashboardViewModel : ObservableObject
 
             StandardUsers = new ObservableCollection<UserRow>(standard);
             AdminUsers = new ObservableCollection<UserRow>(admins);
+            NoStandardUsersVisibility = standard.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
             SidToUsername = standard.Concat(admins).ToDictionary(u => u.Sid, u => u.Username);
         }

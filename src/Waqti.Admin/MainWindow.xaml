@@ -79,7 +79,7 @@
                             Height="32" Padding="12,0"
                             BorderBrush="#CBD5E1"
                             BorderThickness="1"
-                            ToolTip="Settings &amp; Telegram">
+                            ToolTip="{Binding [btn_settings], Source={x:Static services:LocalizedStrings.Instance}}">
                         <StackPanel Orientation="Horizontal">
                             <md:PackIcon Kind="CogOutline" Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,6,0" />
                             <TextBlock Text="{Binding [btn_settings], Source={x:Static services:LocalizedStrings.Instance}}"

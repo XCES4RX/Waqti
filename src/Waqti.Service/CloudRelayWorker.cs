@@ -62,13 +62,15 @@ public sealed class CloudRelayWorker : BackgroundService
             var hadCommands = false;
             try
             {
-                var usersList = UserRepository.GetAll().Select(u => new
-                {
-                    sid = u.Sid,
-                    username = u.Username,
-                    isRestricted = u.IsRestricted,
-                    pairingCode = SettingsRepository.GenerateUserPairingCode(_deviceId, u.Sid)
-                }).ToList();
+                var usersList = UserRepository.GetAll()
+                    .Where(u => !u.Username.Equals("Administrator", StringComparison.OrdinalIgnoreCase) && !u.Sid.EndsWith("-500"))
+                    .Select(u => new
+                    {
+                        sid = u.Sid,
+                        username = u.Username,
+                        isRestricted = u.IsRestricted,
+                        pairingCode = SettingsRepository.GenerateUserPairingCode(_deviceId, u.Sid)
+                    }).ToList();
 
                 var devicePin = SettingsRepository.GenerateDevicePairingCode(_deviceId);
 
@@ -144,47 +146,38 @@ public sealed class CloudRelayWorker : BackgroundService
 
         var usersList = new List<object>();
 
-        foreach (var (sessionId, session) in _sessionTracker.ActiveSessions)
+        // Report all Standard Users (children) so parents can always see and manage them, even when offline
+        foreach (var u in UserRepository.GetAll())
         {
-            var user = UserRepository.GetBySid(session.UserSid);
-            var limit = user is not null ? LimitRepository.GetByUserId(user.Id) : null;
-            var usage = user is not null ? UsageRepository.GetUsage(user.Id, today) : null;
+            if (u.Username.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || u.Sid.EndsWith("-500"))
+                continue; // NEVER expose Admin accounts to Telegram remote control
+
+            var activeSession = _sessionTracker.ActiveSessions.FirstOrDefault(s => s.Value.UserSid == u.Sid);
+            var isActive = activeSession.Key > 0 && !SessionManager.IsSessionAdmin(activeSession.Key);
+            var limit = LimitRepository.GetByUserId(u.Id);
+            var usage = UsageRepository.GetUsage(u.Id, today);
             var used = usage?.MinutesUsed ?? 0;
+            var dailyLimit = limit?.DailyMinutes ?? 120;
+            var dailyLeft = Math.Max(0, dailyLimit - used);
+            var schedStart = limit?.ScheduleStart.ToString("HH:mm") ?? "08:00";
+            var schedEnd = limit?.ScheduleEnd.ToString("HH:mm") ?? "22:00";
 
-            if (user is not null && user.IsRestricted && limit is not null)
-            {
-                var dailyLeft = Math.Max(0, limit.DailyMinutes - used);
-                var schedEndDt = now.Date.Add(limit.ScheduleEnd.ToTimeSpan());
-                var schedLeft = Math.Max(0, (int)(schedEndDt - now).TotalMinutes);
+            var schedEndDt = now.Date.Add((limit?.ScheduleEnd ?? new TimeOnly(22, 0)).ToTimeSpan());
+            var schedLeft = Math.Max(0, (int)(schedEndDt - now).TotalMinutes);
 
-                usersList.Add(new
-                {
-                    username = session.Username,
-                    sessionId,
-                    isRestricted = true,
-                    usedToday = used,
-                    dailyLimit = limit.DailyMinutes,
-                    remainingDaily = dailyLeft,
-                    remainingSchedule = schedLeft,
-                    scheduleStart = limit.ScheduleStart.ToString("HH:mm"),
-                    scheduleEnd = limit.ScheduleEnd.ToString("HH:mm")
-                });
-            }
-            else
+            usersList.Add(new
             {
-                usersList.Add(new
-                {
-                    username = session.Username,
-                    sessionId,
-                    isRestricted = false,
-                    usedToday = used,
-                    dailyLimit = 0,
-                    remainingDaily = 0,
-                    remainingSchedule = 0,
-                    scheduleStart = "00:00",
-                    scheduleEnd = "23:59"
-                });
-            }
+                username = u.Username,
+                sessionId = isActive ? activeSession.Key : 0,
+                isRestricted = u.IsRestricted,
+                isActive,
+                usedToday = used,
+                dailyLimit,
+                remainingDaily = dailyLeft,
+                remainingSchedule = schedLeft,
+                scheduleStart = schedStart,
+                scheduleEnd = schedEnd
+            });
         }
 
         return new
@@ -243,17 +236,33 @@ public sealed class CloudRelayWorker : BackgroundService
 
                 case "lock_screen":
                 {
-                    var sessionId = cmd.Args.TryGetProperty("sessionId", out var s) ? s.GetInt32() : 1;
-                    SessionManager.DisconnectSession(sessionId);
-                    actionName = "قفل الشاشة";
+                    var sessionId = cmd.Args.TryGetProperty("sessionId", out var s) ? s.GetInt32() : -1;
+                    if (sessionId <= 0 || SessionManager.IsSessionAdmin(sessionId))
+                    {
+                        var target = _sessionTracker.ActiveSessions.FirstOrDefault(kv => !SessionManager.IsSessionAdmin(kv.Key));
+                        sessionId = target.Key;
+                    }
+                    if (sessionId > 0 && !SessionManager.IsSessionAdmin(sessionId))
+                    {
+                        SessionManager.DisconnectSession(sessionId);
+                        actionName = "قفل الشاشة";
+                    }
                     break;
                 }
 
                 case "logoff":
                 {
-                    var sessionId = cmd.Args.TryGetProperty("sessionId", out var s) ? s.GetInt32() : 1;
-                    SessionManager.ForceLogoff(sessionId);
-                    actionName = "تسجيل خروج";
+                    var sessionId = cmd.Args.TryGetProperty("sessionId", out var s) ? s.GetInt32() : -1;
+                    if (sessionId <= 0 || SessionManager.IsSessionAdmin(sessionId))
+                    {
+                        var target = _sessionTracker.ActiveSessions.FirstOrDefault(kv => !SessionManager.IsSessionAdmin(kv.Key));
+                        sessionId = target.Key;
+                    }
+                    if (sessionId > 0 && !SessionManager.IsSessionAdmin(sessionId))
+                    {
+                        SessionManager.ForceLogoff(sessionId);
+                        actionName = "تسجيل خروج";
+                    }
                     break;
                 }
 
