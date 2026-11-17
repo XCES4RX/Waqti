@@ -21,6 +21,7 @@ public sealed class CloudRelayWorker : BackgroundService
     private readonly Serilog.ILogger _logger;
     private readonly DateTime _serviceStartedAt = DateTime.Now;
     private string _deviceId = string.Empty;
+    private bool _isRegistered = false;
 
     public CloudRelayWorker(
         CloudRelayClient client,
@@ -46,22 +47,26 @@ public sealed class CloudRelayWorker : BackgroundService
             var settings = SettingsRepository.Get();
             if (!settings.CloudRelayEnabled || string.IsNullOrWhiteSpace(settings.CloudRelayUrl))
             {
-                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                 continue;
             }
 
             try
             {
-                // 1. Ensure registered and refresh pairing code
-                var regResult = await _client.RegisterAsync(
-                    settings.CloudRelayUrl,
-                    _deviceId,
-                    Environment.MachineName,
-                    stoppingToken);
-
-                if (regResult is not null)
+                // 1. Ensure registered once or if pairing code is missing
+                if (!_isRegistered || string.IsNullOrWhiteSpace(settings.PairingCode))
                 {
-                    SettingsRepository.SavePairingInfo(regResult.PairingCode, regResult.IsPaired);
+                    var regResult = await _client.RegisterAsync(
+                        settings.CloudRelayUrl,
+                        _deviceId,
+                        Environment.MachineName,
+                        stoppingToken);
+
+                    if (regResult is not null)
+                    {
+                        SettingsRepository.SavePairingInfo(regResult.PairingCode, regResult.IsPaired);
+                        _isRegistered = true;
+                    }
                 }
 
                 // 2. Build status snapshot
@@ -93,8 +98,10 @@ public sealed class CloudRelayWorker : BackgroundService
                 _logger.Warning("Error syncing with Cloud Relay: {Message}", ex.Message);
             }
 
-            // Adaptive interval: 15 seconds
-            await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+            // Adaptive interval: 25s when user active, 60s when idle
+            var hasActiveSessions = _sessionTracker.ActiveSessions.Count > 0;
+            var delaySeconds = hasActiveSessions ? 25 : 60;
+            await Task.Delay(TimeSpan.FromSeconds(delaySeconds), stoppingToken);
         }
     }
 

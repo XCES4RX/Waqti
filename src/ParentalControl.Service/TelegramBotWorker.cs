@@ -63,7 +63,7 @@ public sealed class TelegramBotWorker : BackgroundService
             var settings = SettingsRepository.Get();
             if (!settings.TelegramEnabled || string.IsNullOrWhiteSpace(settings.TelegramBotToken))
             {
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                 continue;
             }
 

@@ -26,6 +26,8 @@ public sealed class OverlayHostWorker : BackgroundService
     private readonly ConcurrentDictionary<string, DateTime> _lastAppBlockAlerts = new();
     private readonly ConcurrentDictionary<int, string> _pendingMessages = new();
     private readonly ConcurrentDictionary<int, DateTime> _pausedSessions = new();
+    private DateTime _lastBlockedAppsCheck = DateTime.MinValue;
+    private Dictionary<int, (string Username, string Sid, HashSet<string> Apps)> _cachedBlockedApps = new();
 
     public bool SendMessageToUser(string username, string message)
     {
@@ -152,7 +154,7 @@ public sealed class OverlayHostWorker : BackgroundService
                 _logger.Warning(ex, "Error in overlay/app watchdog");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
         }
     }
 
@@ -186,16 +188,28 @@ public sealed class OverlayHostWorker : BackgroundService
     {
         if (_sessionTracker.ActiveSessions.Count == 0) return;
 
-        var sessionBlocked = new Dictionary<int, (string Username, string Sid, HashSet<string> Apps)>();
-        foreach (var (sessionId, session) in _sessionTracker.ActiveSessions)
+        var now = DateTime.Now;
+        Dictionary<int, (string Username, string Sid, HashSet<string> Apps)> sessionBlocked;
+
+        if ((now - _lastBlockedAppsCheck).TotalSeconds < 30)
         {
-            var user = UserRepository.GetBySid(session.UserSid);
-            if (user is null) continue;
-            var apps = BlockedAppRepository.GetByUserId(user.Id);
-            if (apps.Count > 0)
+            sessionBlocked = _cachedBlockedApps;
+        }
+        else
+        {
+            sessionBlocked = new Dictionary<int, (string Username, string Sid, HashSet<string> Apps)>();
+            foreach (var (sessionId, session) in _sessionTracker.ActiveSessions)
             {
-                sessionBlocked[sessionId] = (session.Username, session.UserSid, new HashSet<string>(apps, StringComparer.OrdinalIgnoreCase));
+                var user = UserRepository.GetBySid(session.UserSid);
+                if (user is null) continue;
+                var apps = BlockedAppRepository.GetByUserId(user.Id);
+                if (apps.Count > 0)
+                {
+                    sessionBlocked[sessionId] = (session.Username, session.UserSid, new HashSet<string>(apps, StringComparer.OrdinalIgnoreCase));
+                }
             }
+            _cachedBlockedApps = sessionBlocked;
+            _lastBlockedAppsCheck = now;
         }
 
         if (sessionBlocked.Count == 0) return;
@@ -218,7 +232,6 @@ public sealed class OverlayHostWorker : BackgroundService
                         procName, proc.SessionId, info.Username);
 
                     var key = $"{proc.SessionId}:{procName.ToLowerInvariant()}";
-                    var now = DateTime.Now;
                     if (!_lastAppBlockAlerts.TryGetValue(key, out var lastAlert) || (now - lastAlert).TotalSeconds >= 60)
                     {
                         _lastAppBlockAlerts[key] = now;

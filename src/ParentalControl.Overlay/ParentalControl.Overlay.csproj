@@ -9,6 +9,10 @@
     <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="..\..\icon.ico" Link="icon.ico" />
+    <Resource Include="app-icon.png" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\ParentalControl.Core\ParentalControl.Core.csproj" />
   </ItemGroup>
 </Project>

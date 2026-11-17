@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="..\..\icon.ico" Link="icon.ico" />
+    <Resource Include="app-icon.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

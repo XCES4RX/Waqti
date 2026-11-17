@@ -35,7 +35,7 @@
                 <!-- Branding: Icon + Title + Subtitle -->
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border CornerRadius="8" Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" Width="36" Height="36" Margin="0,0,12,0">
-                        <Image Source="pack://application:,,,/icon.ico" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality" />
+                        <Image Source="pack://application:,,,/app-icon.png" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding [app_title], Source={x:Static services:LocalizedStrings.Instance}}"
