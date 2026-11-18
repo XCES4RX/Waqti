@@ -29,6 +29,8 @@
                 <Setter Property="BorderBrush" Value="#E2E8F0" />
                 <Setter Property="BorderThickness" Value="1" />
             </Style>
+
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

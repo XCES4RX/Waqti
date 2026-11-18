@@ -35,3 +35,9 @@ installer/Output/
 # Cloudflare & Relay
 cloud-relay/.wrangler/
 cloud-relay/relay_db.json
+cloud-relay/config.json
+.env
+.env.*
+*.secret
+*.pem
+*.key

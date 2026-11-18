@@ -2,7 +2,7 @@ namespace Waqti.Core;
 
 public static class AppVersionInfo
 {
-    public const string VersionString = "1.1.1";
-    public static readonly Version CurrentVersion = new(1, 1, 1);
+    public const string VersionString = "1.1.2";
+    public static readonly Version CurrentVersion = new(1, 1, 2);
     public const string GitHubRepo = "XCES4RX/Waqti";
 }

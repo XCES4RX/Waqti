@@ -73,6 +73,18 @@
                         </Border>
                     </Button>
 
+                    <!-- Update Alert Badge (Direct 1-Click Update from Top Bar) -->
+                    <Button Command="{Binding OpenSettingsCommand}"
+                            Visibility="{Binding HasUpdateAlert, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Background="#2563EB" Foreground="#FFFFFF"
+                            BorderThickness="0" Height="32" Padding="12,0" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <md:PackIcon Kind="RocketLaunch" Width="14" Height="14" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding UpdateAlertText}" FontSize="11" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
                     <!-- Settings Button -->
                     <Button Command="{Binding OpenSettingsCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"

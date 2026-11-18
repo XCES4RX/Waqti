@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -18,6 +20,33 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly Action _navigateBack;
     private readonly TelegramApiClient _telegramClient = new();
+
+    [ObservableProperty]
+    private bool _hasUpdate;
+
+    [ObservableProperty]
+    private string _updateTitleText = string.Empty;
+
+    [ObservableProperty]
+    private string _updateStatusBadge = string.Empty;
+
+    [ObservableProperty]
+    private bool _isDownloading;
+
+    [ObservableProperty]
+    private double _downloadPercentage;
+
+    [ObservableProperty]
+    private string _downloadProgressDetail = string.Empty;
+
+    [ObservableProperty]
+    private bool _canDownload;
+
+    [ObservableProperty]
+    private bool _isReadyToInstall;
+
+    private string? _updateExeDownloadUrl;
+    private string? _downloadedFilePath;
 
     [ObservableProperty]
     private bool _telegramEnabled;
@@ -326,19 +355,41 @@ public partial class SettingsViewModel : ObservableObject
 
             if (Version.TryParse(cleaned, out var remoteVer) && remoteVer > AppVersionInfo.CurrentVersion)
             {
+                HasUpdate = true;
+                CanDownload = true;
+                IsReadyToInstall = false;
+                UpdateTitleText = lang == "en" ? $"🚀 New version available: {tagName}" :
+                                  lang == "fr" ? $"🚀 Nouvelle version disponible : {tagName}" :
+                                  $"🚀 إصدار جديد متاح الآن: {tagName}";
+                UpdateStatusBadge = lang == "en" ? "Ready to download" :
+                                    lang == "fr" ? "Prêt au téléchargement" :
+                                    "جاهز للتحميل";
                 StatusMessage = LocalizationManager.T("update_available", lang, tagName);
-                var alert = lang == "en" ? $"New version {tagName} is available!\nAutomatic updater will install it silently." :
-                            lang == "fr" ? $"Nouvelle version {tagName} disponible !\nLe programme sera mis à jour silencieusement." :
-                            $"الإصدار الجديد {tagName} متاح الآن!\nسيقوم المحدث التلقائي بتثبيته بصمت.";
-                MessageBox.Show(alert, "Update Available", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Find exe asset
+                _updateExeDownloadUrl = null;
+                if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var asset in assets.EnumerateArray())
+                    {
+                        var name = asset.TryGetProperty("name", out var np) ? np.GetString() ?? "" : "";
+                        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _updateExeDownloadUrl = asset.TryGetProperty("browser_download_url", out var bp) ? bp.GetString() : null;
+                            if (name.Equals("WaqtiSetup.exe", StringComparison.OrdinalIgnoreCase))
+                                break;
+                        }
+                    }
+                }
             }
             else
             {
+                HasUpdate = false;
                 StatusMessage = LocalizationManager.T("update_no_new", lang, AppVersionInfo.VersionString);
                 var upToDate = lang == "en" ? $"You are running the latest version (v{AppVersionInfo.VersionString})." :
                                lang == "fr" ? $"Vous utilisez la dernière version (v{AppVersionInfo.VersionString})." :
                                $"أنت تستخدم بالفعل أحدث إصدار (v{AppVersionInfo.VersionString}).";
-                MessageBox.Show(upToDate, "Up to Date", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(upToDate, "Waqti", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
@@ -348,6 +399,90 @@ public partial class SettingsViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task DownloadUpdateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_updateExeDownloadUrl)) return;
+        var lang = LocalizedStrings.Instance.CurrentLanguage;
+
+        IsDownloading = true;
+        CanDownload = false;
+        DownloadPercentage = 0;
+        DownloadProgressDetail = lang == "en" ? "Connecting to download server..." : "جاري الاتصال بخادم التحميل...";
+
+        try
+        {
+            var updateDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "Waqti",
+                "updates");
+            Directory.CreateDirectory(updateDir);
+            var destPath = Path.Combine(updateDir, "WaqtiSetup_update.exe");
+
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+            http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("WaqtiAdmin", AppVersionInfo.VersionString));
+
+            using var resp = await http.GetAsync(_updateExeDownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+            resp.EnsureSuccessStatusCode();
+
+            var totalBytes = resp.Content.Headers.ContentLength ?? 52_000_000L;
+            await using (var stream = await resp.Content.ReadAsStreamAsync())
+            await using (var fs = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
+            {
+                var buffer = new byte[81920];
+                long totalRead = 0;
+                int bytesRead;
+
+                while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+                {
+                    await fs.WriteAsync(buffer.AsMemory(0, bytesRead));
+                    totalRead += bytesRead;
+
+                    if (totalBytes > 0)
+                    {
+                        DownloadPercentage = Math.Round((double)totalRead / totalBytes * 100, 1);
+                        var mbRead = totalRead / (1024.0 * 1024.0);
+                        var mbTotal = totalBytes / (1024.0 * 1024.0);
+                        DownloadProgressDetail = $"{DownloadPercentage:0}% ({mbRead:0.0} MB / {mbTotal:0.0} MB)";
+                    }
+                }
+            }
+
+            _downloadedFilePath = destPath;
+            IsDownloading = false;
+            IsReadyToInstall = true;
+            UpdateStatusBadge = lang == "en" ? "Ready to install" : "اكتمل التحميل — جاهز للتثبيت!";
+        }
+        catch (Exception ex)
+        {
+            IsDownloading = false;
+            CanDownload = true;
+            DownloadProgressDetail = $"Download error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void InstallUpdate()
+    {
+        if (string.IsNullOrWhiteSpace(_downloadedFilePath) || !File.Exists(_downloadedFilePath)) return;
+
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = _downloadedFilePath,
+                Arguments = "/SP-",
+                UseShellExecute = true
+            };
+            Process.Start(psi);
+            Application.Current.Shutdown(0);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to launch installer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

@@ -26,6 +26,13 @@ public static partial class SettingsRepository
     private const string KeyPairingCode = "pairing_code";
     private const string KeyIsCloudPaired = "is_cloud_paired";
 
+    private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        KeyTelegramBotToken,
+        KeyDeviceId,
+        KeyPairingCode
+    };
+
     public static AppSettings Get()
     {
         using var connection = DatabaseManager.CreateConnection();
@@ -39,10 +46,18 @@ public static partial class SettingsRepository
             map[reader.GetString(0)] = reader.GetString(1);
         }
 
+        var devId = Security.DataEncryptor.Unprotect(map.GetValueOrDefault(KeyDeviceId, string.Empty));
+        var botToken = Security.DataEncryptor.Unprotect(map.GetValueOrDefault(KeyTelegramBotToken, string.Empty));
+        var pairCode = Security.DataEncryptor.Unprotect(map.GetValueOrDefault(KeyPairingCode, string.Empty));
+        if (string.IsNullOrWhiteSpace(pairCode) || pairCode.Length != 10)
+        {
+            pairCode = GenerateDevicePairingCode(string.IsNullOrWhiteSpace(devId) ? "PC-DEFAULT" : devId);
+        }
+
         return new AppSettings
         {
             TelegramEnabled = ParseBool(map, KeyTelegramEnabled, false),
-            TelegramBotToken = map.GetValueOrDefault(KeyTelegramBotToken, string.Empty),
+            TelegramBotToken = botToken,
             TelegramChatId = map.GetValueOrDefault(KeyTelegramChatId, string.Empty),
             NotifyOnLogin = ParseBool(map, KeyNotifyOnLogin, true),
             NotifyOnLogout = ParseBool(map, KeyNotifyOnLogout, true),
@@ -55,10 +70,8 @@ public static partial class SettingsRepository
             TelegramUpdateOffset = ParseLong(map, KeyTelegramUpdateOffset, 0),
             CloudRelayEnabled = ParseBool(map, KeyCloudRelayEnabled, true),
             CloudRelayUrl = map.GetValueOrDefault(KeyCloudRelayUrl, "https://waqti-relay.cpcontrol.workers.dev"),
-            DeviceId = map.GetValueOrDefault(KeyDeviceId, string.Empty),
-            PairingCode = map.TryGetValue(KeyPairingCode, out var pCode) && pCode.Length == 10
-                ? pCode
-                : GenerateDevicePairingCode(map.GetValueOrDefault(KeyDeviceId, "PC-DEFAULT")),
+            DeviceId = devId,
+            PairingCode = pairCode,
             IsCloudPaired = ParseBool(map, KeyIsCloudPaired, false)
         };
     }
@@ -73,7 +86,7 @@ public static partial class SettingsRepository
         var pairs = new (string Key, string Value)[]
         {
             (KeyTelegramEnabled, settings.TelegramEnabled ? "1" : "0"),
-            (KeyTelegramBotToken, normalizedToken),
+            (KeyTelegramBotToken, Security.DataEncryptor.Protect(normalizedToken)),
             (KeyTelegramChatId, settings.TelegramChatId.Trim()),
             (KeyNotifyOnLogin, settings.NotifyOnLogin ? "1" : "0"),
             (KeyNotifyOnLogout, settings.NotifyOnLogout ? "1" : "0"),
@@ -86,8 +99,8 @@ public static partial class SettingsRepository
             (KeyTelegramUpdateOffset, settings.TelegramUpdateOffset.ToString()),
             (KeyCloudRelayEnabled, settings.CloudRelayEnabled ? "1" : "0"),
             (KeyCloudRelayUrl, settings.CloudRelayUrl.Trim()),
-            (KeyDeviceId, settings.DeviceId.Trim()),
-            (KeyPairingCode, settings.PairingCode.Trim()),
+            (KeyDeviceId, Security.DataEncryptor.Protect(settings.DeviceId.Trim())),
+            (KeyPairingCode, Security.DataEncryptor.Protect(settings.PairingCode.Trim())),
             (KeyIsCloudPaired, settings.IsCloudPaired ? "1" : "0")
         };
 
@@ -213,12 +226,17 @@ public static partial class SettingsRepository
         using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT value FROM app_settings WHERE key = @key";
         cmd.Parameters.AddWithValue("@key", key);
-        var result = cmd.ExecuteScalar();
-        return result?.ToString();
+        var result = cmd.ExecuteScalar()?.ToString();
+        if (result is not null && SensitiveKeys.Contains(key))
+        {
+            return Security.DataEncryptor.Unprotect(result);
+        }
+        return result;
     }
 
     public static void SetCustomSetting(string key, string value)
     {
+        var toSave = SensitiveKeys.Contains(key) ? Security.DataEncryptor.Protect(value) : value;
         using var connection = DatabaseManager.CreateConnection();
         using var cmd = connection.CreateCommand();
         cmd.CommandText = """
@@ -226,7 +244,7 @@ public static partial class SettingsRepository
             ON CONFLICT(key) DO UPDATE SET value = excluded.value;
             """;
         cmd.Parameters.AddWithValue("@key", key);
-        cmd.Parameters.AddWithValue("@value", value);
+        cmd.Parameters.AddWithValue("@value", toSave);
         cmd.ExecuteNonQuery();
     }
 

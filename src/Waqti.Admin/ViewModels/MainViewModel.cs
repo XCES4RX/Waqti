@@ -38,6 +38,12 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _telegramStatusToolTip = string.Empty;
 
+    [ObservableProperty]
+    private bool _hasUpdateAlert;
+
+    [ObservableProperty]
+    private string _updateAlertText = string.Empty;
+
     public MainViewModel()
     {
         _dashboardVm = new DashboardViewModel(NavigateToUserDetail);
@@ -66,6 +72,39 @@ public partial class MainViewModel : ObservableObject
             UpdateServiceStatus();
             _dashboardVm.LoadAll();
         };
+
+        _ = Task.Run(CheckUpdateNotificationAsync);
+    }
+
+    private async Task CheckUpdateNotificationAsync()
+    {
+        try
+        {
+            await Task.Delay(2500);
+            using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var url = $"https://api.github.com/repos/{Waqti.Core.AppVersionInfo.GitHubRepo}/releases/latest";
+            using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
+            req.Headers.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("WaqtiAdmin", Waqti.Core.AppVersionInfo.VersionString));
+            using var resp = await http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode) return;
+
+            var json = await resp.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var tagName = doc.RootElement.TryGetProperty("tag_name", out var tp) ? tp.GetString() ?? "" : "";
+            var cleaned = tagName.TrimStart('v', 'V');
+            if (Version.TryParse(cleaned, out var remoteVer) && remoteVer > Waqti.Core.AppVersionInfo.CurrentVersion)
+            {
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    HasUpdateAlert = true;
+                    var lang = LocalizedStrings.Instance.CurrentLanguage;
+                    UpdateAlertText = lang == "en" ? $"Update Available ({tagName})" :
+                                      lang == "fr" ? $"Mise à jour ({tagName})" :
+                                      $"تحديث جديد ({tagName})";
+                });
+            }
+        }
+        catch { }
     }
 
     public void StopServicePolling() => _serviceTimer.Stop();
