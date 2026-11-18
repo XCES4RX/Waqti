@@ -6,11 +6,11 @@ export default {
     try {
       await ensureDbInitialized(env);
       const url = new URL(request.url);
-      const botToken = env.BOT_TOKEN || "9002447766:AAEUHZg-JMxwUn3S_OCW1DwbrccUbXkjblo";
+      const botToken = env.BOT_TOKEN;
       const botUsername = env.BOT_USERNAME || "Waqti_bot";
 
     // 1. Telegram Webhook Handler
-    if (request.method === "POST" && (url.pathname === "/webhook" || url.pathname === "/")) {
+    if (request.method === "POST" && (url.pathname === "/webhook" || url.pathname === "/" || url.pathname === "/api/telegram/webhook")) {
       try {
         const update = await request.json();
         await handleTelegramUpdate(update, env, botToken, botUsername);
